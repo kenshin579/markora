@@ -16,17 +16,17 @@
 - [x] `./gradlew build` 성공 확인
 
 ### 1-2. plugin.xml 등록
-- [ ] `src/main/resources/META-INF/plugin.xml` 작성
-- [ ] `fileEditorProvider` 확장 등록 (`MarkdownEditorProvider`)
+- [x] `src/main/resources/META-INF/plugin.xml` 작성
+- [x] `fileEditorProvider` 확장 등록 (`MarkdownEditorProvider`)
 - [ ] `httpRequestHandler` 확장 등록 (`PreviewStaticServer`)
-- [ ] `postStartupActivity` 확장 등록 (`JcefSupportCheck`)
-- [ ] `applicationService` 확장 등록 (`EditorSettingsService`)
+- [x] `postStartupActivity` 확장 등록 (`JcefSupportCheck`)
+- [x] `applicationService` 확장 등록 (`EditorSettingsService`)
 
 ### 1-3. JCEF 에디터 기본 뼈대
-- [ ] `MarkdownEditorProvider.kt` 구현 (.md 파일 감지, JCEF 지원 확인)
-- [ ] `MarkdownFileEditor.kt` 구현 (FileEditor 인터페이스)
-- [ ] `MarkdownHtmlPanel.kt` 구현 (JCEFHtmlPanel 확장)
-- [ ] JCEF 패널에 "Hello World" HTML 로드 확인
+- [x] `MarkdownEditorProvider.kt` 구현 (.md 파일 감지, JCEF 지원 확인)
+- [x] `MarkdownFileEditor.kt` 구현 (FileEditor 인터페이스)
+- [x] `MarkdownHtmlPanel.kt` 구현 (JCEFHtmlPanel 확장)
+- [x] JCEF 패널에 "Hello World" HTML 로드 확인
 - [ ] `./gradlew runIde` 로 IDE 실행 → .md 파일 열기 → 커스텀 에디터 탭 표시 확인
 
 ### 1-4. Vditor 번들링

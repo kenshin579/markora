@@ -7,5 +7,20 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <!-- Custom Markdown WYSIWYG Editor -->
+        <fileEditorProvider
+            implementation="com.github.kenshin579.markdowneditor.editor.MarkdownEditorProvider"/>
+
+        <!-- JCEF Support Check on Startup -->
+        <postStartupActivity
+            implementation="com.github.kenshin579.markdowneditor.listener.JcefSupportCheck"/>
+
+        <!-- Editor Settings -->
+        <applicationService
+            serviceImplementation="com.github.kenshin579.markdowneditor.service.EditorSettingsService"/>
+
+        <!-- Notification Group -->
+        <notificationGroup id="Markdown Editor Notifications"
+                           displayType="BALLOON"/>
     </extensions>
 </idea-plugin>
