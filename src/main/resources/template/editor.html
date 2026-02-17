@@ -9,7 +9,18 @@
         html, body { height: 100%; overflow: hidden; }
         #vditor { height: 100%; }
         .vditor { border: none !important; }
-        .vditor-toolbar { border-bottom: 1px solid var(--border-color, #e0e0e0) !important; }
+        .vditor-toolbar { display: none !important; }
+
+        /* Source mode: uniform font size, no heading size variation */
+        .vditor-sv .vditor-sv__marker--heading { font-size: inherit !important; }
+        .vditor-sv [data-type="heading"] { font-size: inherit !important; }
+        .vditor-sv h1, .vditor-sv h2, .vditor-sv h3,
+        .vditor-sv h4, .vditor-sv h5, .vditor-sv h6 { font-size: inherit !important; }
+        .vditor-sv span[data-type] { font-size: inherit !important; }
+        .vditor-sv .vditor-sv__marker { font-size: inherit !important; }
+        /* Hide preview in sv mode */
+        .vditor-content .vditor-preview { display: none !important; }
+        .vditor-content .vditor-sv { width: 100% !important; }
 
         /* Mode indicator in status bar */
         #status-bar {
@@ -69,7 +80,7 @@
         let saveTimeout = null;
         let currentMode = 'wysiwyg';
 
-        // Apply dark class to status bar
+        // Apply dark class
         if (IS_DARK) {
             document.getElementById('status-bar').classList.add('dark');
         }
@@ -78,26 +89,11 @@
             vditor = new Vditor('vditor', {
                 mode: 'wysiwyg',
                 value: '',
-                height: 'calc(100vh - 24px)',
+                height: '100%',
                 cache: { enable: false },
                 theme: IS_DARK ? 'dark' : 'classic',
-                cdn: SERVER_URL + 'resources/vditor/dist',
-                toolbar: [
-                    'headings', 'bold', 'italic', 'strike', '|',
-                    'line', 'quote', 'code', 'inline-code', '|',
-                    'list', 'ordered-list', 'check', '|',
-                    'table', 'link', '|',
-                    'undo', 'redo', '|',
-                    'outline', 'export', '|',
-                    'fullscreen', 'edit-mode'
-                ],
-                toolbarConfig: {
-                    pin: true
-                },
-                counter: {
-                    enable: true,
-                    type: 'text'
-                },
+                cdn: SERVER_URL + 'resources/vditor',
+                toolbar: [],
                 upload: {
                     url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
                     accept: 'image/*',
@@ -258,15 +254,82 @@
         }
 
         function switchMode(mode) {
-            if (vditor && mode !== currentMode) {
-                // Save before switching
-                if (isDirty) {
-                    saveToFile(vditor.getValue());
-                }
-                vditor.switchMode(mode);
-                currentMode = mode;
-                updateModeIndicator(mode);
+            if (mode === currentMode) return;
+            if (!vditor) return;
+
+            var content = vditor.getValue();
+            if (isDirty) {
+                saveToFile(content);
             }
+
+            // Destroy and re-create Vditor with the new mode
+            vditor.destroy();
+            currentMode = mode;
+            updateModeIndicator(mode);
+
+            vditor = new Vditor('vditor', {
+                mode: mode,
+                value: content,
+                height: '100%',
+                cache: { enable: false },
+                theme: IS_DARK ? 'dark' : 'classic',
+                cdn: SERVER_URL + 'resources/vditor',
+                toolbar: [],
+                upload: {
+                    url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
+                    accept: 'image/*',
+                    multiple: true,
+                    fieldName: 'file[]',
+                    filename: function(name) { return name; },
+                    format: function(files, responseText) {
+                        try {
+                            var resp = JSON.parse(responseText);
+                            if (resp.code === 0 && resp.data && resp.data.succMap) {
+                                var newSuccMap = {};
+                                var mdDir = FILE_PATH.substring(0, FILE_PATH.lastIndexOf('/'));
+                                for (var origName in resp.data.succMap) {
+                                    var relativePath = resp.data.succMap[origName];
+                                    var absolutePath = mdDir + '/' + relativePath;
+                                    var imageUrl = SERVER_URL + 'api/local-image?path=' + encodeURIComponent(absolutePath);
+                                    newSuccMap[origName] = imageUrl;
+                                }
+                                return JSON.stringify({ msg: '', code: 0, data: { succMap: newSuccMap } });
+                            }
+                        } catch(e) { console.error('Upload format error:', e); }
+                        return responseText;
+                    }
+                },
+                tab: '    ',
+                typewriterMode: false,
+                preview: {
+                    theme: { current: IS_DARK ? 'dark' : 'light' },
+                    hljs: { enable: true, style: IS_DARK ? 'native' : 'github', lineNumber: true },
+                    math: { engine: 'KaTeX' }
+                },
+                hint: {
+                    emoji: {
+                        '+1': '\ud83d\udc4d', '-1': '\ud83d\udc4e', 'heart': '\u2764\ufe0f', 'smile': '\ud83d\ude04',
+                        'laugh': '\ud83d\ude06', 'think': '\ud83e\udd14', 'fire': '\ud83d\udd25', 'star': '\u2b50',
+                        'check': '\u2705', 'x': '\u274c', 'warning': '\u26a0\ufe0f', 'bug': '\ud83d\udc1b',
+                        'rocket': '\ud83d\ude80', 'tada': '\ud83c\udf89'
+                    },
+                    extend: [{ key: '/', hint: function(key) { return filterSlashCommands(key); } }]
+                },
+                input: function(value) {
+                    isDirty = true;
+                    updateSaveStatus('Modified');
+                    debounceSave(value);
+                },
+                blur: function(value) {
+                    if (isDirty) saveToFile(value);
+                },
+                focus: function(value) {
+                    checkExternalChanges();
+                },
+                after: function() {
+                    observeModeChange();
+                }
+            });
         }
 
         function updateModeIndicator(mode) {
@@ -299,12 +362,7 @@
                     isDark ? 'native' : 'github'
                 );
             }
-            var statusBar = document.getElementById('status-bar');
-            if (isDark) {
-                statusBar.classList.add('dark');
-            } else {
-                statusBar.classList.remove('dark');
-            }
+            document.getElementById('status-bar').classList.toggle('dark', isDark);
         }
 
         // Open links in external browser via JCEF
