@@ -11,26 +11,16 @@
         .vditor { border: none !important; }
         .vditor-toolbar { display: none !important; }
 
-        /* Plain source editor */
-        #source-editor {
-            display: none;
-            width: 100%;
-            height: calc(100% - 24px);
-            border: none;
-            outline: none;
-            resize: none;
-            padding: 16px 24px;
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            tab-size: 4;
-            background: var(--source-bg, #fff);
-            color: var(--source-fg, #333);
-        }
-        #source-editor.dark {
-            --source-bg: #1e1e1e;
-            --source-fg: #d4d4d4;
-        }
+        /* Source mode: uniform font size, no heading size variation */
+        .vditor-sv .vditor-sv__marker--heading { font-size: inherit !important; }
+        .vditor-sv [data-type="heading"] { font-size: inherit !important; }
+        .vditor-sv h1, .vditor-sv h2, .vditor-sv h3,
+        .vditor-sv h4, .vditor-sv h5, .vditor-sv h6 { font-size: inherit !important; }
+        .vditor-sv span[data-type] { font-size: inherit !important; }
+        .vditor-sv .vditor-sv__marker { font-size: inherit !important; }
+        /* Hide preview in sv mode */
+        .vditor-content .vditor-preview { display: none !important; }
+        .vditor-content .vditor-sv { width: 100% !important; }
 
         /* Mode indicator in status bar */
         #status-bar {
@@ -71,7 +61,6 @@
 </head>
 <body>
     <div id="vditor"></div>
-    <textarea id="source-editor" spellcheck="false"></textarea>
     <div id="status-bar">
         <span id="save-status">Ready</span>
         <span>
@@ -94,7 +83,6 @@
         // Apply dark class
         if (IS_DARK) {
             document.getElementById('status-bar').classList.add('dark');
-            document.getElementById('source-editor').classList.add('dark');
         }
 
         function initEditor() {
@@ -267,56 +255,82 @@
 
         function switchMode(mode) {
             if (mode === currentMode) return;
-            var vditorEl = document.getElementById('vditor');
-            var sourceEl = document.getElementById('source-editor');
+            if (!vditor) return;
 
-            if (mode === 'sv') {
-                // WYSIWYG -> Source: get content from Vditor, show textarea
-                var content = vditor ? vditor.getValue() : '';
-                if (isDirty && vditor) {
-                    saveToFile(content);
-                }
-                sourceEl.value = content;
-                vditorEl.style.display = 'none';
-                sourceEl.style.display = 'block';
-                sourceEl.focus();
-            } else {
-                // Source -> WYSIWYG: get content from textarea, show Vditor
-                var content = sourceEl.value;
-                sourceEl.style.display = 'none';
-                vditorEl.style.display = 'block';
-                if (vditor) {
-                    vditor.setValue(content);
-                }
-                isDirty = false;
+            var content = vditor.getValue();
+            if (isDirty) {
+                saveToFile(content);
             }
+
+            // Destroy and re-create Vditor with the new mode
+            vditor.destroy();
             currentMode = mode;
             updateModeIndicator(mode);
-        }
 
-        // Source editor input handling
-        (function() {
-            var sourceEl = document.getElementById('source-editor');
-            var sourceTimeout = null;
-            sourceEl.addEventListener('input', function() {
-                isDirty = true;
-                updateSaveStatus('Modified');
-                if (sourceTimeout) clearTimeout(sourceTimeout);
-                sourceTimeout = setTimeout(function() {
-                    saveToFile(sourceEl.value);
-                }, 1000);
-            });
-            sourceEl.addEventListener('keydown', function(e) {
-                if (e.key === 'Tab') {
-                    e.preventDefault();
-                    var start = this.selectionStart;
-                    var end = this.selectionEnd;
-                    this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
-                    this.selectionStart = this.selectionEnd = start + 4;
-                    this.dispatchEvent(new Event('input'));
+            vditor = new Vditor('vditor', {
+                mode: mode,
+                value: content,
+                height: '100%',
+                cache: { enable: false },
+                theme: IS_DARK ? 'dark' : 'classic',
+                cdn: SERVER_URL + 'resources/vditor',
+                toolbar: [],
+                upload: {
+                    url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
+                    accept: 'image/*',
+                    multiple: true,
+                    fieldName: 'file[]',
+                    filename: function(name) { return name; },
+                    format: function(files, responseText) {
+                        try {
+                            var resp = JSON.parse(responseText);
+                            if (resp.code === 0 && resp.data && resp.data.succMap) {
+                                var newSuccMap = {};
+                                var mdDir = FILE_PATH.substring(0, FILE_PATH.lastIndexOf('/'));
+                                for (var origName in resp.data.succMap) {
+                                    var relativePath = resp.data.succMap[origName];
+                                    var absolutePath = mdDir + '/' + relativePath;
+                                    var imageUrl = SERVER_URL + 'api/local-image?path=' + encodeURIComponent(absolutePath);
+                                    newSuccMap[origName] = imageUrl;
+                                }
+                                return JSON.stringify({ msg: '', code: 0, data: { succMap: newSuccMap } });
+                            }
+                        } catch(e) { console.error('Upload format error:', e); }
+                        return responseText;
+                    }
+                },
+                tab: '    ',
+                typewriterMode: false,
+                preview: {
+                    theme: { current: IS_DARK ? 'dark' : 'light' },
+                    hljs: { enable: true, style: IS_DARK ? 'native' : 'github', lineNumber: true },
+                    math: { engine: 'KaTeX' }
+                },
+                hint: {
+                    emoji: {
+                        '+1': '\ud83d\udc4d', '-1': '\ud83d\udc4e', 'heart': '\u2764\ufe0f', 'smile': '\ud83d\ude04',
+                        'laugh': '\ud83d\ude06', 'think': '\ud83e\udd14', 'fire': '\ud83d\udd25', 'star': '\u2b50',
+                        'check': '\u2705', 'x': '\u274c', 'warning': '\u26a0\ufe0f', 'bug': '\ud83d\udc1b',
+                        'rocket': '\ud83d\ude80', 'tada': '\ud83c\udf89'
+                    },
+                    extend: [{ key: '/', hint: function(key) { return filterSlashCommands(key); } }]
+                },
+                input: function(value) {
+                    isDirty = true;
+                    updateSaveStatus('Modified');
+                    debounceSave(value);
+                },
+                blur: function(value) {
+                    if (isDirty) saveToFile(value);
+                },
+                focus: function(value) {
+                    checkExternalChanges();
+                },
+                after: function() {
+                    observeModeChange();
                 }
             });
-        })();
+        }
 
         function updateModeIndicator(mode) {
             document.getElementById('mode-wysiwyg').classList.toggle('active', mode === 'wysiwyg');
@@ -349,7 +363,6 @@
                 );
             }
             document.getElementById('status-bar').classList.toggle('dark', isDark);
-            document.getElementById('source-editor').classList.toggle('dark', isDark);
         }
 
         // Open links in external browser via JCEF
