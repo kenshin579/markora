@@ -7,47 +7,47 @@
 ## Phase 1: 기초 인프라 (P0)
 
 ### 1-1. 프로젝트 셋업
-- [ ] JDK 21 설치 확인 (`java -version`)
-- [ ] Gradle + IntelliJ Platform Plugin 2.x 프로젝트 생성
-- [ ] `build.gradle.kts` 작성 (intellijIdeaCommunity 2024.2, Kotlin, jvmToolchain 21)
-- [ ] `settings.gradle.kts` 작성
-- [ ] `gradle.properties` 작성 (플러그인 메타데이터)
-- [ ] `.gitignore` 작성 (IntelliJ + Gradle 패턴)
-- [ ] `./gradlew build` 성공 확인
+- [x] JDK 21 설치 확인 (`java -version`)
+- [x] Gradle + IntelliJ Platform Plugin 2.x 프로젝트 생성
+- [x] `build.gradle.kts` 작성 (intellijIdeaCommunity 2024.2, Kotlin, jvmToolchain 21)
+- [x] `settings.gradle.kts` 작성
+- [x] `gradle.properties` 작성 (플러그인 메타데이터)
+- [x] `.gitignore` 작성 (IntelliJ + Gradle 패턴)
+- [x] `./gradlew build` 성공 확인
 
 ### 1-2. plugin.xml 등록
-- [ ] `src/main/resources/META-INF/plugin.xml` 작성
-- [ ] `fileEditorProvider` 확장 등록 (`MarkdownEditorProvider`)
+- [x] `src/main/resources/META-INF/plugin.xml` 작성
+- [x] `fileEditorProvider` 확장 등록 (`MarkdownEditorProvider`)
 - [ ] `httpRequestHandler` 확장 등록 (`PreviewStaticServer`)
-- [ ] `postStartupActivity` 확장 등록 (`JcefSupportCheck`)
-- [ ] `applicationService` 확장 등록 (`EditorSettingsService`)
+- [x] `postStartupActivity` 확장 등록 (`JcefSupportCheck`)
+- [x] `applicationService` 확장 등록 (`EditorSettingsService`)
 
 ### 1-3. JCEF 에디터 기본 뼈대
-- [ ] `MarkdownEditorProvider.kt` 구현 (.md 파일 감지, JCEF 지원 확인)
-- [ ] `MarkdownFileEditor.kt` 구현 (FileEditor 인터페이스)
-- [ ] `MarkdownHtmlPanel.kt` 구현 (JCEFHtmlPanel 확장)
-- [ ] JCEF 패널에 "Hello World" HTML 로드 확인
+- [x] `MarkdownEditorProvider.kt` 구현 (.md 파일 감지, JCEF 지원 확인)
+- [x] `MarkdownFileEditor.kt` 구현 (FileEditor 인터페이스)
+- [x] `MarkdownHtmlPanel.kt` 구현 (JCEFHtmlPanel 확장)
+- [x] JCEF 패널에 "Hello World" HTML 로드 확인
 - [ ] `./gradlew runIde` 로 IDE 실행 → .md 파일 열기 → 커스텀 에디터 탭 표시 확인
 
 ### 1-4. Vditor 번들링
-- [ ] Vditor 라이브러리 다운로드 (dist 폴더)
-- [ ] `src/main/resources/vditor/` 에 번들링
-- [ ] `ResourcesController.kt` 구현 (정적 파일 서빙)
-- [ ] `template/editor.html` 작성 (Vditor 초기화)
+- [x] Vditor 라이브러리 다운로드 (dist 폴더)
+- [x] `src/main/resources/vditor/` 에 번들링
+- [x] `ResourcesController.kt` 구현 (정적 파일 서빙)
+- [x] `template/editor.html` 작성 (Vditor 초기화)
 - [ ] JCEF에서 Vditor 에디터 로드 확인 (빈 에디터 표시)
 
 ### 1-5. 파일 읽기/쓰기 연동
-- [ ] `PreviewStaticServer.kt` 구현 (HTTP 라우팅)
-- [ ] `MarkdownFileController.kt` 구현 (GET: 읽기, POST: 쓰기)
-- [ ] editor.html에서 파일 내용 로드 (`initValue()`)
-- [ ] 에디터 blur 시 파일 저장 (`saveToFile()`)
+- [x] `PreviewStaticServer.kt` 구현 (HTTP 라우팅)
+- [x] `MarkdownFileController.kt` 구현 (GET: 읽기, POST: 쓰기)
+- [x] editor.html에서 파일 내용 로드 (`initValue()`)
+- [x] 에디터 blur 시 파일 저장 (`saveToFile()`)
 - [ ] .md 파일 열기 → Vditor에 내용 표시 → 편집 → 저장 → 소스 확인 워크플로우 동작 확인
 
 ### 1-6. IDE 테마 연동
-- [ ] `EditorColorsManager` 리스너로 Dark/Light 감지
-- [ ] MarkdownHtmlPanel 초기화 시 현재 테마 반영
-- [ ] JS `switchTheme()` 함수로 Vditor 테마 전환
-- [ ] IDE 테마 변경 시 에디터 즉시 반영 확인
+- [x] `EditorColorsManager` 리스너로 Dark/Light 감지
+- [x] MarkdownHtmlPanel 초기화 시 현재 테마 반영
+- [x] JS `switchTheme()` 함수로 Vditor 테마 전환
+- [x] IDE 테마 변경 시 에디터 즉시 반영 확인
 
 ---
 

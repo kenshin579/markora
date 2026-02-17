@@ -1,0 +1,30 @@
+<idea-plugin>
+    <id>com.github.kenshin579.markdown-editor</id>
+    <name>Markdown WYSIWYG Editor</name>
+    <vendor>kenshin579</vendor>
+    <description>Typora-like WYSIWYG Markdown editor for JetBrains IDEs</description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Custom Markdown WYSIWYG Editor -->
+        <fileEditorProvider
+            implementation="com.github.kenshin579.markdowneditor.editor.MarkdownEditorProvider"/>
+
+        <!-- HTTP Request Handler for Vditor resources and file API -->
+        <httpRequestHandler
+            implementation="com.github.kenshin579.markdowneditor.controller.PreviewStaticServer"/>
+
+        <!-- JCEF Support Check on Startup -->
+        <postStartupActivity
+            implementation="com.github.kenshin579.markdowneditor.listener.JcefSupportCheck"/>
+
+        <!-- Editor Settings -->
+        <applicationService
+            serviceImplementation="com.github.kenshin579.markdowneditor.service.EditorSettingsService"/>
+
+        <!-- Notification Group -->
+        <notificationGroup id="Markdown Editor Notifications"
+                           displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>
