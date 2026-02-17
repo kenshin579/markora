@@ -1,0 +1,11 @@
+<idea-plugin>
+    <id>com.github.kenshin579.markdown-editor</id>
+    <name>Markdown WYSIWYG Editor</name>
+    <vendor>kenshin579</vendor>
+    <description>Typora-like WYSIWYG Markdown editor for JetBrains IDEs</description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+    </extensions>
+</idea-plugin>

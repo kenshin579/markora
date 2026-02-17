@@ -7,13 +7,13 @@
 ## Phase 1: 기초 인프라 (P0)
 
 ### 1-1. 프로젝트 셋업
-- [ ] JDK 21 설치 확인 (`java -version`)
-- [ ] Gradle + IntelliJ Platform Plugin 2.x 프로젝트 생성
-- [ ] `build.gradle.kts` 작성 (intellijIdeaCommunity 2024.2, Kotlin, jvmToolchain 21)
-- [ ] `settings.gradle.kts` 작성
-- [ ] `gradle.properties` 작성 (플러그인 메타데이터)
-- [ ] `.gitignore` 작성 (IntelliJ + Gradle 패턴)
-- [ ] `./gradlew build` 성공 확인
+- [x] JDK 21 설치 확인 (`java -version`)
+- [x] Gradle + IntelliJ Platform Plugin 2.x 프로젝트 생성
+- [x] `build.gradle.kts` 작성 (intellijIdeaCommunity 2024.2, Kotlin, jvmToolchain 21)
+- [x] `settings.gradle.kts` 작성
+- [x] `gradle.properties` 작성 (플러그인 메타데이터)
+- [x] `.gitignore` 작성 (IntelliJ + Gradle 패턴)
+- [x] `./gradlew build` 성공 확인
 
 ### 1-2. plugin.xml 등록
 - [ ] `src/main/resources/META-INF/plugin.xml` 작성
