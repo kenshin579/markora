@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{serverUrl}}resources/vditor/dist/index.css"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
+        #vditor { height: 100%; }
+        .vditor { border: none !important; }
+        .vditor-toolbar { border-bottom: 1px solid var(--border-color, #e0e0e0) !important; }
+    </style>
+</head>
+<body>
+    <div id="vditor"></div>
+
+    <script src="{{serverUrl}}resources/vditor/dist/index.min.js"></script>
+    <script>
+        const SERVER_URL = '{{serverUrl}}';
+        const FILE_PATH = '{{filePath}}';
+        const IS_DARK = {{darcula}};
+
+        let vditor;
+        let isDirty = false;
+        let saveTimeout = null;
+
+        function initEditor() {
+            vditor = new Vditor('vditor', {
+                mode: 'wysiwyg',
+                value: '',
+                cache: { enable: false },
+                theme: IS_DARK ? 'dark' : 'classic',
+                cdn: SERVER_URL + 'resources/vditor/dist',
+                toolbar: [
+                    'headings', 'bold', 'italic', 'strike', '|',
+                    'list', 'ordered-list', 'check', '|',
+                    'quote', 'code', 'inline-code', '|',
+                    'table', 'line', 'link', '|',
+                    'undo', 'redo', '|',
+                    {
+                        name: 'mode-switch',
+                        tipPosition: 'ne',
+                        tip: 'Switch Mode',
+                        icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
+                        click: function() {
+                            const currentMode = vditor.getCurrentMode();
+                            if (currentMode === 'wysiwyg') {
+                                vditor.switchMode('sv');
+                            } else {
+                                vditor.switchMode('wysiwyg');
+                            }
+                        }
+                    }
+                ],
+                preview: {
+                    theme: {
+                        current: IS_DARK ? 'dark' : 'light'
+                    },
+                    hljs: {
+                        style: IS_DARK ? 'native' : 'github'
+                    }
+                },
+                input: function(value) {
+                    isDirty = true;
+                    debounceSave(value);
+                },
+                blur: function(value) {
+                    if (isDirty) {
+                        saveToFile(value);
+                    }
+                },
+                after: function() {
+                    initValue();
+                }
+            });
+        }
+
+        async function initValue() {
+            try {
+                const resp = await fetch(SERVER_URL + 'api/file/read?path=' + encodeURIComponent(FILE_PATH));
+                const data = await resp.json();
+                if (data.content !== undefined) {
+                    vditor.setValue(data.content);
+                    isDirty = false;
+                }
+            } catch (e) {
+                console.error('Failed to load file:', e);
+            }
+        }
+
+        function debounceSave(content) {
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+            }
+            saveTimeout = setTimeout(function() {
+                saveToFile(content);
+            }, 1000);
+        }
+
+        async function saveToFile(content) {
+            try {
+                await fetch(SERVER_URL + 'api/file/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: FILE_PATH,
+                        content: content
+                    })
+                });
+                isDirty = false;
+            } catch (e) {
+                console.error('Failed to save file:', e);
+            }
+        }
+
+        function switchTheme(isDark) {
+            if (vditor) {
+                vditor.setTheme(
+                    isDark ? 'dark' : 'classic',
+                    isDark ? 'dark' : 'light',
+                    isDark ? 'native' : 'github'
+                );
+            }
+        }
+
+        initEditor();
+    </script>
+</body>
+</html>

@@ -30,24 +30,24 @@
 - [ ] `./gradlew runIde` 로 IDE 실행 → .md 파일 열기 → 커스텀 에디터 탭 표시 확인
 
 ### 1-4. Vditor 번들링
-- [ ] Vditor 라이브러리 다운로드 (dist 폴더)
-- [ ] `src/main/resources/vditor/` 에 번들링
-- [ ] `ResourcesController.kt` 구현 (정적 파일 서빙)
-- [ ] `template/editor.html` 작성 (Vditor 초기화)
+- [x] Vditor 라이브러리 다운로드 (dist 폴더)
+- [x] `src/main/resources/vditor/` 에 번들링
+- [x] `ResourcesController.kt` 구현 (정적 파일 서빙)
+- [x] `template/editor.html` 작성 (Vditor 초기화)
 - [ ] JCEF에서 Vditor 에디터 로드 확인 (빈 에디터 표시)
 
 ### 1-5. 파일 읽기/쓰기 연동
-- [ ] `PreviewStaticServer.kt` 구현 (HTTP 라우팅)
-- [ ] `MarkdownFileController.kt` 구현 (GET: 읽기, POST: 쓰기)
-- [ ] editor.html에서 파일 내용 로드 (`initValue()`)
-- [ ] 에디터 blur 시 파일 저장 (`saveToFile()`)
+- [x] `PreviewStaticServer.kt` 구현 (HTTP 라우팅)
+- [x] `MarkdownFileController.kt` 구현 (GET: 읽기, POST: 쓰기)
+- [x] editor.html에서 파일 내용 로드 (`initValue()`)
+- [x] 에디터 blur 시 파일 저장 (`saveToFile()`)
 - [ ] .md 파일 열기 → Vditor에 내용 표시 → 편집 → 저장 → 소스 확인 워크플로우 동작 확인
 
 ### 1-6. IDE 테마 연동
-- [ ] `EditorColorsManager` 리스너로 Dark/Light 감지
-- [ ] MarkdownHtmlPanel 초기화 시 현재 테마 반영
-- [ ] JS `switchTheme()` 함수로 Vditor 테마 전환
-- [ ] IDE 테마 변경 시 에디터 즉시 반영 확인
+- [x] `EditorColorsManager` 리스너로 Dark/Light 감지
+- [x] MarkdownHtmlPanel 초기화 시 현재 테마 반영
+- [x] JS `switchTheme()` 함수로 Vditor 테마 전환
+- [x] IDE 테마 변경 시 에디터 즉시 반영 확인
 
 ---
 

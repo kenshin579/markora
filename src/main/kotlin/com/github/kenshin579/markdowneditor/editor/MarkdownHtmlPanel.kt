@@ -1,6 +1,9 @@
 package com.github.kenshin579.markdowneditor.editor
 
+import com.github.kenshin579.markdowneditor.controller.PreviewStaticServer
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.jcef.JBCefBrowser
@@ -20,37 +23,47 @@ class MarkdownHtmlPanel(
         get() = browser.component
 
     init {
-        val html = buildHelloWorldHtml()
-        browser.loadHTML(html)
+        loadEditor()
     }
 
-    private fun buildHelloWorldHtml(): String {
-        return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        padding: 20px;
-                        margin: 0;
-                    }
-                    h1 { color: #333; }
-                    .info { color: #666; font-size: 14px; }
-                </style>
-            </head>
-            <body>
-                <h1>Markdown WYSIWYG Editor</h1>
-                <p class="info">File: ${file.name}</p>
-                <p class="info">JCEF panel loaded successfully!</p>
-            </body>
-            </html>
-        """.trimIndent()
+    private fun loadEditor() {
+        val template = loadTemplate()
+        if (template != null) {
+            val serverUrl = PreviewStaticServer.getServiceUrl()
+            val isDark = EditorColorsManager.getInstance().isDarkEditor
+
+            val html = template
+                .replace("{{serverUrl}}", serverUrl)
+                .replace("{{filePath}}", file.path)
+                .replace("{{darcula}}", isDark.toString())
+
+            browser.loadHTML(html)
+        } else {
+            LOG.error("Failed to load editor.html template")
+            browser.loadHTML("<html><body><h1>Error: Template not found</h1></body></html>")
+        }
+    }
+
+    private fun loadTemplate(): String? {
+        return try {
+            val inputStream = javaClass.classLoader.getResourceAsStream("template/editor.html")
+            inputStream?.bufferedReader()?.readText()
+        } catch (e: Exception) {
+            LOG.error("Failed to read editor template", e)
+            null
+        }
+    }
+
+    fun executeJavaScript(script: String) {
+        browser.cefBrowser.executeJavaScript(script, null, 0)
     }
 
     override fun dispose() {
         jsQuery.dispose()
         browser.dispose()
+    }
+
+    companion object {
+        private val LOG = logger<MarkdownHtmlPanel>()
     }
 }

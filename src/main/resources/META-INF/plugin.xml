@@ -11,6 +11,10 @@
         <fileEditorProvider
             implementation="com.github.kenshin579.markdowneditor.editor.MarkdownEditorProvider"/>
 
+        <!-- HTTP Request Handler for Vditor resources and file API -->
+        <httpRequestHandler
+            implementation="com.github.kenshin579.markdowneditor.controller.PreviewStaticServer"/>
+
         <!-- JCEF Support Check on Startup -->
         <postStartupActivity
             implementation="com.github.kenshin579.markdowneditor.listener.JcefSupportCheck"/>
