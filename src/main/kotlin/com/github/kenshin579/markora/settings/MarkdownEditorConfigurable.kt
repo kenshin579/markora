@@ -1,6 +1,6 @@
-package com.github.kenshin579.markdowneditor.settings
+package com.github.kenshin579.markora.settings
 
-import com.github.kenshin579.markdowneditor.service.EditorSettingsService
+import com.github.kenshin579.markora.service.EditorSettingsService
 import com.intellij.openapi.options.Configurable
 import javax.swing.*
 
@@ -13,7 +13,7 @@ class MarkdownEditorConfigurable : Configurable {
     private var fontSizeSpinner: JSpinner? = null
     private var autoSaveSpinner: JSpinner? = null
 
-    override fun getDisplayName(): String = "Markdown WYSIWYG Editor"
+    override fun getDisplayName(): String = "Markora"
 
     override fun createComponent(): JComponent {
         val settings = EditorSettingsService.getInstance().state

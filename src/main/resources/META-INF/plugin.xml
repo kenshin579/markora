@@ -1,37 +1,37 @@
 <idea-plugin>
-    <id>com.github.kenshin579.markdown-editor</id>
-    <name>Markdown WYSIWYG Editor</name>
+    <id>com.github.kenshin579.markora</id>
+    <name>Markora</name>
     <vendor>kenshin579</vendor>
     <description>Typora-like WYSIWYG Markdown editor for JetBrains IDEs</description>
 
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Custom Markdown WYSIWYG Editor -->
+        <!-- Markora Editor -->
         <fileEditorProvider
-            implementation="com.github.kenshin579.markdowneditor.editor.MarkdownEditorProvider"/>
+            implementation="com.github.kenshin579.markora.editor.MarkdownEditorProvider"/>
 
         <!-- HTTP Request Handler for Vditor resources and file API -->
         <httpRequestHandler
-            implementation="com.github.kenshin579.markdowneditor.controller.PreviewStaticServer"/>
+            implementation="com.github.kenshin579.markora.controller.PreviewStaticServer"/>
 
         <!-- JCEF Support Check on Startup -->
         <postStartupActivity
-            implementation="com.github.kenshin579.markdowneditor.listener.JcefSupportCheck"/>
+            implementation="com.github.kenshin579.markora.listener.JcefSupportCheck"/>
 
         <!-- Editor Settings -->
         <applicationService
-            serviceImplementation="com.github.kenshin579.markdowneditor.service.EditorSettingsService"/>
+            serviceImplementation="com.github.kenshin579.markora.service.EditorSettingsService"/>
 
         <!-- Settings UI -->
         <applicationConfigurable
             parentId="tools"
-            instance="com.github.kenshin579.markdowneditor.settings.MarkdownEditorConfigurable"
-            id="com.github.kenshin579.markdowneditor.settings"
-            displayName="Markdown WYSIWYG Editor"/>
+            instance="com.github.kenshin579.markora.settings.MarkdownEditorConfigurable"
+            id="com.github.kenshin579.markora.settings"
+            displayName="Markora"/>
 
         <!-- Notification Group -->
-        <notificationGroup id="Markdown Editor Notifications"
+        <notificationGroup id="Markora Notifications"
                            displayType="BALLOON"/>
     </extensions>
 </idea-plugin>

@@ -35,8 +35,8 @@ configurations {
 
 intellijPlatform {
     pluginConfiguration {
-        id = "com.github.kenshin579.markdown-editor"
-        name = "Markdown WYSIWYG Editor"
+        id = "com.github.kenshin579.markora"
+        name = "Markora"
         version = project.version.toString()
         ideaVersion {
             sinceBuild = "242"

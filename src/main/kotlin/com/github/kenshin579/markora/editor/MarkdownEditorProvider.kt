@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.editor
+package com.github.kenshin579.markora.editor
 
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorPolicy
@@ -23,6 +23,6 @@ class MarkdownEditorProvider : FileEditorProvider, DumbAware {
     override fun getPolicy(): FileEditorPolicy = FileEditorPolicy.PLACE_AFTER_DEFAULT_EDITOR
 
     companion object {
-        const val EDITOR_TYPE_ID = "markdown-wysiwyg-editor"
+        const val EDITOR_TYPE_ID = "markora-editor"
     }
 }
