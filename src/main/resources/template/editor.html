@@ -97,6 +97,34 @@
                     enable: true,
                     type: 'text'
                 },
+                upload: {
+                    url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
+                    accept: 'image/*',
+                    multiple: true,
+                    fieldName: 'file[]',
+                    filename: function(name) {
+                        return name;
+                    },
+                    format: function(files, responseText) {
+                        try {
+                            var resp = JSON.parse(responseText);
+                            if (resp.code === 0 && resp.data && resp.data.succMap) {
+                                var newSuccMap = {};
+                                var mdDir = FILE_PATH.substring(0, FILE_PATH.lastIndexOf('/'));
+                                for (var origName in resp.data.succMap) {
+                                    var relativePath = resp.data.succMap[origName];
+                                    var absolutePath = mdDir + '/' + relativePath;
+                                    var imageUrl = SERVER_URL + 'api/local-image?path=' + encodeURIComponent(absolutePath);
+                                    newSuccMap[origName] = imageUrl;
+                                }
+                                return JSON.stringify({ msg: '', code: 0, data: { succMap: newSuccMap } });
+                            }
+                        } catch(e) {
+                            console.error('Upload format error:', e);
+                        }
+                        return responseText;
+                    }
+                },
                 tab: '    ',
                 typewriterMode: false,
                 preview: {
@@ -128,7 +156,15 @@
                         'bug': '🐛',
                         'rocket': '🚀',
                         'tada': '🎉'
-                    }
+                    },
+                    extend: [
+                        {
+                            key: '/',
+                            hint: function(key) {
+                                return filterSlashCommands(key);
+                            }
+                        }
+                    ]
                 },
                 input: function(value) {
                     isDirty = true;
@@ -283,6 +319,34 @@
                 window.open(target.href, '_blank');
             }
         }, true);
+
+        function filterSlashCommands(query) {
+            var commands = [
+                // Basic Blocks
+                { value: '# ', html: '<b>/h1</b> &nbsp; Heading 1' },
+                { value: '## ', html: '<b>/h2</b> &nbsp; Heading 2' },
+                { value: '### ', html: '<b>/h3</b> &nbsp; Heading 3' },
+                { value: '#### ', html: '<b>/h4</b> &nbsp; Heading 4' },
+                { value: '##### ', html: '<b>/h5</b> &nbsp; Heading 5' },
+                { value: '###### ', html: '<b>/h6</b> &nbsp; Heading 6' },
+                { value: '', html: '<b>/text</b> &nbsp; Plain text' },
+                { value: '- ', html: '<b>/bullet</b> &nbsp; Bulleted list' },
+                { value: '1. ', html: '<b>/num</b> &nbsp; Numbered list' },
+                { value: '- [ ] ', html: '<b>/todo</b> &nbsp; Checklist' },
+                { value: '> ', html: '<b>/quote</b> &nbsp; Quote block' },
+                { value: '---\n', html: '<b>/div</b> &nbsp; Divider' },
+                // Media
+                { value: '```\n', html: '<b>/code</b> &nbsp; Code block' },
+                { value: '| Col1 | Col2 | Col3 |\n| --- | --- | --- |\n| | | |\n', html: '<b>/table</b> &nbsp; Table' },
+                { value: '![image]()', html: '<b>/image</b> &nbsp; Image' }
+            ];
+
+            if (!query) return commands;
+            var q = query.toLowerCase();
+            return commands.filter(function(cmd) {
+                return cmd.html.toLowerCase().indexOf(q) !== -1;
+            });
+        }
 
         initEditor();
     </script>

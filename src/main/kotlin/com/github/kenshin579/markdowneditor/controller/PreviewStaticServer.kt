@@ -31,6 +31,10 @@ class PreviewStaticServer : HttpRequestHandler() {
         return when {
             path.startsWith("api/file") ->
                 MarkdownFileController.handle(urlDecoder, request, context)
+            path.startsWith("api/upload") ->
+                ImageUploadController.handle(urlDecoder, request, context)
+            path.startsWith("api/local-image") ->
+                LocalImageController.handle(urlDecoder, request, context)
             path.startsWith("resources/") ->
                 ResourcesController.handle(path.removePrefix("resources/"), request, context)
             else -> false
