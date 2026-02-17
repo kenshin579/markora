@@ -9,7 +9,7 @@
         html, body { height: 100%; overflow: hidden; }
         #vditor { height: 100%; }
         .vditor { border: none !important; }
-        .vditor-toolbar { border-bottom: 1px solid var(--border-color, #e0e0e0) !important; }
+        .vditor-toolbar { display: none !important; }
 
         /* Mode indicator in status bar */
         #status-bar {
@@ -78,26 +78,11 @@
             vditor = new Vditor('vditor', {
                 mode: 'wysiwyg',
                 value: '',
-                height: 'calc(100vh - 24px)',
+                height: '100%',
                 cache: { enable: false },
                 theme: IS_DARK ? 'dark' : 'classic',
                 cdn: SERVER_URL + 'resources/vditor',
-                toolbar: [
-                    'headings', 'bold', 'italic', 'strike', '|',
-                    'line', 'quote', 'code', 'inline-code', '|',
-                    'list', 'ordered-list', 'check', '|',
-                    'table', 'link', '|',
-                    'undo', 'redo', '|',
-                    'outline', 'export', '|',
-                    'fullscreen', 'edit-mode'
-                ],
-                toolbarConfig: {
-                    pin: true
-                },
-                counter: {
-                    enable: true,
-                    type: 'text'
-                },
+                toolbar: [],
                 upload: {
                     url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
                     accept: 'image/*',
@@ -259,14 +244,84 @@
 
         function switchMode(mode) {
             if (vditor && mode !== currentMode) {
-                // Save before switching
+                // Get current content before switching
+                var content = vditor.getValue();
                 if (isDirty) {
-                    saveToFile(vditor.getValue());
+                    saveToFile(content);
                 }
-                vditor.switchMode(mode);
+                // Destroy and re-init with new mode
                 currentMode = mode;
                 updateModeIndicator(mode);
+                vditor.destroy();
+                initEditorWithMode(mode, content);
             }
+        }
+
+        function initEditorWithMode(mode, initialContent) {
+            vditor = new Vditor('vditor', {
+                mode: mode,
+                value: initialContent || '',
+                height: '100%',
+                cache: { enable: false },
+                theme: IS_DARK ? 'dark' : 'classic',
+                cdn: SERVER_URL + 'resources/vditor',
+                toolbar: [],
+                upload: {
+                    url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
+                    accept: 'image/*',
+                    multiple: true,
+                    fieldName: 'file[]',
+                    filename: function(name) { return name; },
+                    format: function(files, responseText) {
+                        try {
+                            var resp = JSON.parse(responseText);
+                            if (resp.code === 0 && resp.data && resp.data.succMap) {
+                                var newSuccMap = {};
+                                var mdDir = FILE_PATH.substring(0, FILE_PATH.lastIndexOf('/'));
+                                for (var origName in resp.data.succMap) {
+                                    var relativePath = resp.data.succMap[origName];
+                                    var absolutePath = mdDir + '/' + relativePath;
+                                    var imageUrl = SERVER_URL + 'api/local-image?path=' + encodeURIComponent(absolutePath);
+                                    newSuccMap[origName] = imageUrl;
+                                }
+                                return JSON.stringify({ msg: '', code: 0, data: { succMap: newSuccMap } });
+                            }
+                        } catch(e) { console.error('Upload format error:', e); }
+                        return responseText;
+                    }
+                },
+                tab: '    ',
+                typewriterMode: false,
+                preview: {
+                    theme: { current: IS_DARK ? 'dark' : 'light' },
+                    hljs: { enable: true, style: IS_DARK ? 'native' : 'github', lineNumber: true },
+                    math: { engine: 'KaTeX' }
+                },
+                hint: {
+                    emoji: {
+                        '+1': '👍', '-1': '👎', 'heart': '❤️', 'smile': '😄',
+                        'laugh': '😆', 'think': '🤔', 'fire': '🔥', 'star': '⭐',
+                        'check': '✅', 'x': '❌', 'warning': '⚠️', 'bug': '🐛',
+                        'rocket': '🚀', 'tada': '🎉'
+                    },
+                    extend: [{ key: '/', hint: function(key) { return filterSlashCommands(key); } }]
+                },
+                input: function(value) {
+                    isDirty = true;
+                    updateSaveStatus('Modified');
+                    debounceSave(value);
+                },
+                blur: function(value) {
+                    if (isDirty) { saveToFile(value); }
+                },
+                focus: function(value) {
+                    checkExternalChanges();
+                },
+                after: function() {
+                    // Content already set via value option
+                    isDirty = false;
+                }
+            });
         }
 
         function updateModeIndicator(mode) {
