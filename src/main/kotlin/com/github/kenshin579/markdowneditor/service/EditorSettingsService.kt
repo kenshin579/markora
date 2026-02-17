@@ -10,7 +10,11 @@ import com.intellij.openapi.components.Storage
 class EditorSettingsService : PersistentStateComponent<EditorSettingsService.State> {
 
     data class State(
-        var defaultMode: String = "wysiwyg"
+        var defaultMode: String = "wysiwyg",
+        var typewriterMode: Boolean = false,
+        var showLineNumbers: Boolean = true,
+        var fontSize: Int = 16,
+        var autoSaveDelayMs: Int = 1000
     )
 
     private var myState = State()

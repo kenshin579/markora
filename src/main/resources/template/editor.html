@@ -88,6 +88,7 @@
                     'list', 'ordered-list', 'check', '|',
                     'table', 'link', '|',
                     'undo', 'redo', '|',
+                    'outline', 'export', '|',
                     'fullscreen', 'edit-mode'
                 ],
                 toolbarConfig: {
@@ -320,6 +321,28 @@
             }
         }, true);
 
+        async function exportFile(format) {
+            try {
+                if (isDirty) {
+                    await saveToFile(vditor.getValue());
+                }
+                var url = SERVER_URL + 'api/export?format=' + format + '&path=' + encodeURIComponent(FILE_PATH);
+                var resp = await fetch(url);
+                var data = await resp.json();
+                if (data.error) {
+                    updateSaveStatus('Export failed: ' + data.error);
+                } else {
+                    updateSaveStatus('Exported: ' + data.msg);
+                    setTimeout(function() {
+                        if (!isDirty) updateSaveStatus('Ready');
+                    }, 3000);
+                }
+            } catch(e) {
+                console.error('Export failed:', e);
+                updateSaveStatus('Export failed');
+            }
+        }
+
         function filterSlashCommands(query) {
             var commands = [
                 // Basic Blocks
@@ -345,7 +368,9 @@
                 // Diagram
                 { value: '```mermaid\ngraph TD\n    A[Start] --> B[End]\n```\n', html: '<b>/mermaid</b> &nbsp; Mermaid diagram' },
                 // Navigation
-                { value: '[TOC]\n', html: '<b>/toc</b> &nbsp; Table of contents' }
+                { value: '[TOC]\n', html: '<b>/toc</b> &nbsp; Table of contents' },
+                // Utility
+                { value: ':emoji:', html: '<b>/emoji</b> &nbsp; Emoji picker' }
             ];
 
             if (!query) return commands;

@@ -156,21 +156,21 @@
 ### 5-2. 추가 기능
 - [ ] `/duplicate` → 현재 블록 복제
 - [ ] `/delete` → 현재 블록 삭제
-- [ ] `/emoji` → 이모지 선택 팝업
+- [x] `/emoji` → 이모지 선택 팝업
 
 ### 5-3. 설정 & UI
-- [ ] 에디터 설정 UI (Settings → Tools → Markdown WYSIWYG Editor)
-- [ ] 아웃라인 패널 (목차 기반 네비게이션)
+- [x] 에디터 설정 UI (Settings → Tools → Markdown WYSIWYG Editor)
+- [x] 아웃라인 패널 (목차 기반 네비게이션)
 
 ### 5-4. Export
-- [ ] HTML Export
+- [x] HTML Export
 - [ ] PDF Export
 
 ### 5-5. 고급 UX
 - [ ] Focus 모드 (현재 블록 외 흐리게)
-- [ ] Typewriter 모드 (커서 항상 화면 중앙)
+- [x] Typewriter 모드 (커서 항상 화면 중앙)
 
 ### 5-6. 배포
 - [ ] JetBrains Marketplace 플러그인 등록
-- [ ] GitHub Actions CI/CD 파이프라인 구성
-- [ ] CHANGELOG.md 작성
+- [x] GitHub Actions CI/CD 파이프라인 구성
+- [x] CHANGELOG.md 작성
