@@ -23,6 +23,13 @@
         <applicationService
             serviceImplementation="com.github.kenshin579.markdowneditor.service.EditorSettingsService"/>
 
+        <!-- Settings UI -->
+        <applicationConfigurable
+            parentId="tools"
+            instance="com.github.kenshin579.markdowneditor.settings.MarkdownEditorConfigurable"
+            id="com.github.kenshin579.markdowneditor.settings"
+            displayName="Markdown WYSIWYG Editor"/>
+
         <!-- Notification Group -->
         <notificationGroup id="Markdown Editor Notifications"
                            displayType="BALLOON"/>
