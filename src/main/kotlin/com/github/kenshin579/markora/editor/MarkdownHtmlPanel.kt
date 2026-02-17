@@ -1,6 +1,6 @@
-package com.github.kenshin579.markdowneditor.editor
+package com.github.kenshin579.markora.editor
 
-import com.github.kenshin579.markdowneditor.controller.PreviewStaticServer
+import com.github.kenshin579.markora.controller.PreviewStaticServer
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.logger

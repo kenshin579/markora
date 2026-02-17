@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.listener
+package com.github.kenshin579.markora.listener
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -11,9 +11,9 @@ class JcefSupportCheck : ProjectActivity {
     override suspend fun execute(project: Project) {
         if (!JBCefApp.isSupported()) {
             NotificationGroupManager.getInstance()
-                .getNotificationGroup("Markdown Editor Notifications")
+                .getNotificationGroup("Markora Notifications")
                 .createNotification(
-                    "Markdown WYSIWYG Editor",
+                    "Markora",
                     "This plugin requires JCEF support. Please use a JetBrains IDE with bundled JCEF.",
                     NotificationType.WARNING
                 )

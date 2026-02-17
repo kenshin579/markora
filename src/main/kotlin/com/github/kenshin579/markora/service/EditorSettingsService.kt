@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.service
+package com.github.kenshin579.markora.service
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
@@ -6,7 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 
 @Service(Service.Level.APP)
-@State(name = "MarkdownEditorSettings", storages = [Storage("markdown-wysiwyg-editor.xml")])
+@State(name = "MarkoraSettings", storages = [Storage("markora.xml")])
 class EditorSettingsService : PersistentStateComponent<EditorSettingsService.State> {
 
     data class State(

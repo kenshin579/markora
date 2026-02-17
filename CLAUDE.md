@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-IntelliJ Platform plugin for Markdown editing. The project is in early development.
+Markora - Typora-like WYSIWYG Markdown editor plugin for JetBrains IDEs. The project is in early development.
 
 - **Repository**: https://github.com/kenshin579/intellij-plugin-markdown-editor
-- **Language**: Kotlin (expected)
+- **Language**: Kotlin
 - **Build System**: Gradle with IntelliJ Platform Plugin
 
 ## Build Commands

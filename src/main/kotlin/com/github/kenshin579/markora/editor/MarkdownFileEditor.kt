@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.editor
+package com.github.kenshin579.markora.editor
 
 import com.intellij.openapi.editor.colors.EditorColorsListener
 import com.intellij.openapi.editor.colors.EditorColorsManager
@@ -34,7 +34,7 @@ class MarkdownFileEditor(
 
     override fun getPreferredFocusedComponent(): JComponent = panel.component
 
-    override fun getName(): String = "Markdown Editor"
+    override fun getName(): String = "Markora"
 
     override fun getFile(): VirtualFile = file
 

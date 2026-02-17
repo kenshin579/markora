@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.controller
+package com.github.kenshin579.markora.controller
 
 import com.intellij.openapi.diagnostic.logger
 import io.netty.channel.ChannelHandlerContext
@@ -44,7 +44,7 @@ class PreviewStaticServer : HttpRequestHandler() {
     }
 
     companion object {
-        const val PREFIX = "/markdown-editor/"
+        const val PREFIX = "/markora/"
         private val LOG = logger<PreviewStaticServer>()
 
         fun getServiceUrl(): String {

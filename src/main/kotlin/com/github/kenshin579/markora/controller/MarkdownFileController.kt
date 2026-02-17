@@ -1,4 +1,4 @@
-package com.github.kenshin579.markdowneditor.controller
+package com.github.kenshin579.markora.controller
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
