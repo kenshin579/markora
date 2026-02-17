@@ -10,9 +10,27 @@
         #vditor { height: 100%; }
         .vditor { border: none !important; }
         .vditor-toolbar { display: none !important; }
-        /* Source mode: hide preview, show only raw editor */
-        .vditor-content .vditor-preview { display: none !important; }
-        .vditor-content .vditor-sv { width: 100% !important; }
+
+        /* Plain source editor */
+        #source-editor {
+            display: none;
+            width: 100%;
+            height: calc(100% - 24px);
+            border: none;
+            outline: none;
+            resize: none;
+            padding: 16px 24px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            tab-size: 4;
+            background: var(--source-bg, #fff);
+            color: var(--source-fg, #333);
+        }
+        #source-editor.dark {
+            --source-bg: #1e1e1e;
+            --source-fg: #d4d4d4;
+        }
 
         /* Mode indicator in status bar */
         #status-bar {
@@ -53,6 +71,7 @@
 </head>
 <body>
     <div id="vditor"></div>
+    <textarea id="source-editor" spellcheck="false"></textarea>
     <div id="status-bar">
         <span id="save-status">Ready</span>
         <span>
@@ -72,9 +91,10 @@
         let saveTimeout = null;
         let currentMode = 'wysiwyg';
 
-        // Apply dark class to status bar
+        // Apply dark class
         if (IS_DARK) {
             document.getElementById('status-bar').classList.add('dark');
+            document.getElementById('source-editor').classList.add('dark');
         }
 
         function initEditor() {
@@ -246,86 +266,57 @@
         }
 
         function switchMode(mode) {
-            if (vditor && mode !== currentMode) {
-                // Get current content before switching
-                var content = vditor.getValue();
-                if (isDirty) {
+            if (mode === currentMode) return;
+            var vditorEl = document.getElementById('vditor');
+            var sourceEl = document.getElementById('source-editor');
+
+            if (mode === 'sv') {
+                // WYSIWYG -> Source: get content from Vditor, show textarea
+                var content = vditor ? vditor.getValue() : '';
+                if (isDirty && vditor) {
                     saveToFile(content);
                 }
-                // Destroy and re-init with new mode
-                currentMode = mode;
-                updateModeIndicator(mode);
-                vditor.destroy();
-                initEditorWithMode(mode, content);
+                sourceEl.value = content;
+                vditorEl.style.display = 'none';
+                sourceEl.style.display = 'block';
+                sourceEl.focus();
+            } else {
+                // Source -> WYSIWYG: get content from textarea, show Vditor
+                var content = sourceEl.value;
+                sourceEl.style.display = 'none';
+                vditorEl.style.display = 'block';
+                if (vditor) {
+                    vditor.setValue(content);
+                }
+                isDirty = false;
             }
+            currentMode = mode;
+            updateModeIndicator(mode);
         }
 
-        function initEditorWithMode(mode, initialContent) {
-            vditor = new Vditor('vditor', {
-                mode: mode,
-                value: initialContent || '',
-                height: '100%',
-                cache: { enable: false },
-                theme: IS_DARK ? 'dark' : 'classic',
-                cdn: SERVER_URL + 'resources/vditor',
-                toolbar: [],
-                upload: {
-                    url: SERVER_URL + 'api/upload?filePath=' + encodeURIComponent(FILE_PATH),
-                    accept: 'image/*',
-                    multiple: true,
-                    fieldName: 'file[]',
-                    filename: function(name) { return name; },
-                    format: function(files, responseText) {
-                        try {
-                            var resp = JSON.parse(responseText);
-                            if (resp.code === 0 && resp.data && resp.data.succMap) {
-                                var newSuccMap = {};
-                                var mdDir = FILE_PATH.substring(0, FILE_PATH.lastIndexOf('/'));
-                                for (var origName in resp.data.succMap) {
-                                    var relativePath = resp.data.succMap[origName];
-                                    var absolutePath = mdDir + '/' + relativePath;
-                                    var imageUrl = SERVER_URL + 'api/local-image?path=' + encodeURIComponent(absolutePath);
-                                    newSuccMap[origName] = imageUrl;
-                                }
-                                return JSON.stringify({ msg: '', code: 0, data: { succMap: newSuccMap } });
-                            }
-                        } catch(e) { console.error('Upload format error:', e); }
-                        return responseText;
-                    }
-                },
-                tab: '    ',
-                typewriterMode: false,
-                preview: {
-                    theme: { current: IS_DARK ? 'dark' : 'light' },
-                    hljs: { enable: true, style: IS_DARK ? 'native' : 'github', lineNumber: true },
-                    math: { engine: 'KaTeX' }
-                },
-                hint: {
-                    emoji: {
-                        '+1': '👍', '-1': '👎', 'heart': '❤️', 'smile': '😄',
-                        'laugh': '😆', 'think': '🤔', 'fire': '🔥', 'star': '⭐',
-                        'check': '✅', 'x': '❌', 'warning': '⚠️', 'bug': '🐛',
-                        'rocket': '🚀', 'tada': '🎉'
-                    },
-                    extend: [{ key: '/', hint: function(key) { return filterSlashCommands(key); } }]
-                },
-                input: function(value) {
-                    isDirty = true;
-                    updateSaveStatus('Modified');
-                    debounceSave(value);
-                },
-                blur: function(value) {
-                    if (isDirty) { saveToFile(value); }
-                },
-                focus: function(value) {
-                    checkExternalChanges();
-                },
-                after: function() {
-                    // Content already set via value option
-                    isDirty = false;
+        // Source editor input handling
+        (function() {
+            var sourceEl = document.getElementById('source-editor');
+            var sourceTimeout = null;
+            sourceEl.addEventListener('input', function() {
+                isDirty = true;
+                updateSaveStatus('Modified');
+                if (sourceTimeout) clearTimeout(sourceTimeout);
+                sourceTimeout = setTimeout(function() {
+                    saveToFile(sourceEl.value);
+                }, 1000);
+            });
+            sourceEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    var start = this.selectionStart;
+                    var end = this.selectionEnd;
+                    this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 4;
+                    this.dispatchEvent(new Event('input'));
                 }
             });
-        }
+        })();
 
         function updateModeIndicator(mode) {
             document.getElementById('mode-wysiwyg').classList.toggle('active', mode === 'wysiwyg');
@@ -357,12 +348,8 @@
                     isDark ? 'native' : 'github'
                 );
             }
-            var statusBar = document.getElementById('status-bar');
-            if (isDark) {
-                statusBar.classList.add('dark');
-            } else {
-                statusBar.classList.remove('dark');
-            }
+            document.getElementById('status-bar').classList.toggle('dark', isDark);
+            document.getElementById('source-editor').classList.toggle('dark', isDark);
         }
 
         // Open links in external browser via JCEF
