@@ -124,20 +124,20 @@
 ## Phase 4: 고급 렌더링 (P1)
 
 ### 4-1. LaTeX 수식
-- [ ] KaTeX 번들링 (Vditor 내장 활용)
-- [ ] 인라인 수식 (`$...$`) 렌더링
-- [ ] 블록 수식 (`$$...$$`) 렌더링
-- [ ] `/equation` Slash 커맨드 (인라인)
-- [ ] `/math` 또는 `/latex` Slash 커맨드 (블록)
+- [x] KaTeX 번들링 (Vditor 내장 활용)
+- [x] 인라인 수식 (`$...$`) 렌더링
+- [x] 블록 수식 (`$$...$$`) 렌더링
+- [x] `/equation` Slash 커맨드 (인라인)
+- [x] `/math` 또는 `/latex` Slash 커맨드 (블록)
 
 ### 4-2. Mermaid 다이어그램
-- [ ] Mermaid.js 번들링 (Vditor 내장 활용)
-- [ ] ` ```mermaid ` 코드 블록 → 다이어그램 렌더링
-- [ ] `/mermaid` Slash 커맨드
-- [ ] Flowchart, Sequence, Gantt 등 주요 다이어그램 동작 확인
+- [x] Mermaid.js 번들링 (Vditor 내장 활용)
+- [x] ` ```mermaid ` 코드 블록 → 다이어그램 렌더링
+- [x] `/mermaid` Slash 커맨드
+- [x] Flowchart, Sequence, Gantt 등 주요 다이어그램 동작 확인
 
 ### 4-3. 추가 커맨드
-- [ ] `/toc` → 목차 자동 생성
+- [x] `/toc` → 목차 자동 생성
 - [ ] `/toggle` → 토글 리스트 (접기/펼치기)
 
 ---
