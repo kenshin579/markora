@@ -10,10 +10,53 @@
         #vditor { height: 100%; }
         .vditor { border: none !important; }
         .vditor-toolbar { border-bottom: 1px solid var(--border-color, #e0e0e0) !important; }
+
+        /* Mode indicator in status bar */
+        #status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 12px;
+            background: var(--status-bg, #f5f5f5);
+            color: var(--status-fg, #666);
+            border-top: 1px solid var(--border-color, #e0e0e0);
+            z-index: 100;
+        }
+        #status-bar.dark {
+            --status-bg: #2b2b2b;
+            --status-fg: #999;
+            --border-color: #3c3c3c;
+        }
+        #status-bar .mode-btn {
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 3px;
+            user-select: none;
+        }
+        #status-bar .mode-btn:hover {
+            background: rgba(128,128,128,0.2);
+        }
+        #status-bar .mode-btn.active {
+            font-weight: bold;
+        }
+        #save-status { opacity: 0.7; }
     </style>
 </head>
 <body>
     <div id="vditor"></div>
+    <div id="status-bar">
+        <span id="save-status">Ready</span>
+        <span>
+            <span id="mode-wysiwyg" class="mode-btn active" onclick="switchMode('wysiwyg')">WYSIWYG</span>
+            <span id="mode-sv" class="mode-btn" onclick="switchMode('sv')">Source</span>
+        </span>
+    </div>
 
     <script src="{{serverUrl}}resources/vditor/dist/index.min.js"></script>
     <script>
@@ -24,45 +67,72 @@
         let vditor;
         let isDirty = false;
         let saveTimeout = null;
+        let currentMode = 'wysiwyg';
+
+        // Apply dark class to status bar
+        if (IS_DARK) {
+            document.getElementById('status-bar').classList.add('dark');
+        }
 
         function initEditor() {
             vditor = new Vditor('vditor', {
                 mode: 'wysiwyg',
                 value: '',
+                height: 'calc(100vh - 24px)',
                 cache: { enable: false },
                 theme: IS_DARK ? 'dark' : 'classic',
                 cdn: SERVER_URL + 'resources/vditor/dist',
                 toolbar: [
                     'headings', 'bold', 'italic', 'strike', '|',
+                    'line', 'quote', 'code', 'inline-code', '|',
                     'list', 'ordered-list', 'check', '|',
-                    'quote', 'code', 'inline-code', '|',
-                    'table', 'line', 'link', '|',
+                    'table', 'link', '|',
                     'undo', 'redo', '|',
-                    {
-                        name: 'mode-switch',
-                        tipPosition: 'ne',
-                        tip: 'Switch Mode',
-                        icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
-                        click: function() {
-                            const currentMode = vditor.getCurrentMode();
-                            if (currentMode === 'wysiwyg') {
-                                vditor.switchMode('sv');
-                            } else {
-                                vditor.switchMode('wysiwyg');
-                            }
-                        }
-                    }
+                    'fullscreen', 'edit-mode'
                 ],
+                toolbarConfig: {
+                    pin: true
+                },
+                counter: {
+                    enable: true,
+                    type: 'text'
+                },
+                tab: '    ',
+                typewriterMode: false,
                 preview: {
                     theme: {
                         current: IS_DARK ? 'dark' : 'light'
                     },
                     hljs: {
-                        style: IS_DARK ? 'native' : 'github'
+                        enable: true,
+                        style: IS_DARK ? 'native' : 'github',
+                        lineNumber: true
+                    },
+                    math: {
+                        engine: 'KaTeX'
+                    }
+                },
+                hint: {
+                    emoji: {
+                        '+1': '👍',
+                        '-1': '👎',
+                        'heart': '❤️',
+                        'smile': '😄',
+                        'laugh': '😆',
+                        'think': '🤔',
+                        'fire': '🔥',
+                        'star': '⭐',
+                        'check': '✅',
+                        'x': '❌',
+                        'warning': '⚠️',
+                        'bug': '🐛',
+                        'rocket': '🚀',
+                        'tada': '🎉'
                     }
                 },
                 input: function(value) {
                     isDirty = true;
+                    updateSaveStatus('Modified');
                     debounceSave(value);
                 },
                 blur: function(value) {
@@ -70,8 +140,14 @@
                         saveToFile(value);
                     }
                 },
+                focus: function(value) {
+                    // Reload if file changed externally
+                    checkExternalChanges();
+                },
                 after: function() {
                     initValue();
+                    // Track mode changes from Vditor's built-in edit-mode button
+                    observeModeChange();
                 }
             });
         }
@@ -83,9 +159,28 @@
                 if (data.content !== undefined) {
                     vditor.setValue(data.content);
                     isDirty = false;
+                    updateSaveStatus('Ready');
                 }
             } catch (e) {
                 console.error('Failed to load file:', e);
+                updateSaveStatus('Load failed');
+            }
+        }
+
+        let lastKnownContent = null;
+
+        async function checkExternalChanges() {
+            try {
+                const resp = await fetch(SERVER_URL + 'api/file/read?path=' + encodeURIComponent(FILE_PATH));
+                const data = await resp.json();
+                if (data.content !== undefined && lastKnownContent !== null) {
+                    if (data.content !== lastKnownContent && !isDirty) {
+                        vditor.setValue(data.content);
+                        lastKnownContent = data.content;
+                    }
+                }
+            } catch (e) {
+                // ignore
             }
         }
 
@@ -100,6 +195,7 @@
 
         async function saveToFile(content) {
             try {
+                updateSaveStatus('Saving...');
                 await fetch(SERVER_URL + 'api/file/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -109,8 +205,52 @@
                     })
                 });
                 isDirty = false;
+                lastKnownContent = content;
+                updateSaveStatus('Saved');
+                setTimeout(function() {
+                    if (!isDirty) updateSaveStatus('Ready');
+                }, 2000);
             } catch (e) {
                 console.error('Failed to save file:', e);
+                updateSaveStatus('Save failed');
+            }
+        }
+
+        function updateSaveStatus(status) {
+            document.getElementById('save-status').textContent = status;
+        }
+
+        function switchMode(mode) {
+            if (vditor && mode !== currentMode) {
+                // Save before switching
+                if (isDirty) {
+                    saveToFile(vditor.getValue());
+                }
+                vditor.switchMode(mode);
+                currentMode = mode;
+                updateModeIndicator(mode);
+            }
+        }
+
+        function updateModeIndicator(mode) {
+            document.getElementById('mode-wysiwyg').classList.toggle('active', mode === 'wysiwyg');
+            document.getElementById('mode-sv').classList.toggle('active', mode === 'sv');
+        }
+
+        function observeModeChange() {
+            // Watch for mode changes from Vditor's built-in edit-mode toolbar button
+            var observer = new MutationObserver(function() {
+                if (vditor) {
+                    var mode = vditor.getCurrentMode();
+                    if (mode !== currentMode) {
+                        currentMode = mode;
+                        updateModeIndicator(mode);
+                    }
+                }
+            });
+            var vditorEl = document.getElementById('vditor');
+            if (vditorEl) {
+                observer.observe(vditorEl, { attributes: true, childList: true, subtree: true });
             }
         }
 
@@ -122,7 +262,27 @@
                     isDark ? 'native' : 'github'
                 );
             }
+            var statusBar = document.getElementById('status-bar');
+            if (isDark) {
+                statusBar.classList.add('dark');
+            } else {
+                statusBar.classList.remove('dark');
+            }
         }
+
+        // Open links in external browser via JCEF
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+            }
+            if (target && target.href && target.href.startsWith('http')) {
+                e.preventDefault();
+                e.stopPropagation();
+                // JCEF will handle external URL opening
+                window.open(target.href, '_blank');
+            }
+        }, true);
 
         initEditor();
     </script>
