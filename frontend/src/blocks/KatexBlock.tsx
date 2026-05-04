@@ -31,13 +31,20 @@ export const KatexBlock = createReactBlockSpec(
       const timerRef = useRef<number | null>(null);
 
       useEffect(() => {
+        setDraft(block.props.source);
+        setDebounced(block.props.source);
+      }, [block.props.source]);
+
+      useEffect(() => {
         if (timerRef.current) window.clearTimeout(timerRef.current);
         timerRef.current = window.setTimeout(() => setDebounced(draft), 300);
         return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
       }, [draft]);
 
       const commit = () => {
-        editor.updateBlock(block, { type: 'katex', props: { source: draft } } as any);
+        if (draft !== block.props.source) {
+          editor.updateBlock(block, { type: 'katex', props: { source: draft } } as any);
+        }
         setEditing(false);
       };
 

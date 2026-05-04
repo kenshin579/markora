@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createReactInlineContentSpec } from '@blocknote/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -14,6 +14,10 @@ export const KatexInline = createReactInlineContentSpec(
       const [editing, setEditing] = useState(false);
       const [draft, setDraft] = useState(inlineContent.props.source);
 
+      useEffect(() => {
+        setDraft(inlineContent.props.source);
+      }, [inlineContent.props.source]);
+
       if (editing) {
         return (
           <span className="markora-katex-inline-edit">
@@ -22,7 +26,9 @@ export const KatexInline = createReactInlineContentSpec(
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => {
-                updateInlineContent({ type: 'katexInline', props: { source: draft }, content: undefined } as any);
+                if (draft !== inlineContent.props.source) {
+                  updateInlineContent({ type: 'katexInline', props: { source: draft }, content: undefined } as any);
+                }
                 setEditing(false);
               }}
               onKeyDown={(e) => {
