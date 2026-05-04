@@ -293,7 +293,8 @@ tasks.named("clean") {
 @blocknote/core         ^0.49.0
 @blocknote/react        ^0.49.0
 @blocknote/mantine      ^0.49.0
-@mantine/core           ^7.13.0
+@mantine/core           ^8.3.11
+@mantine/hooks          ^8.3.11
 react                   ^18.3.1
 react-dom               ^18.3.1
 katex                   ^0.16.11
