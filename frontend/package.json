@@ -1,0 +1,33 @@
+{
+  "name": "markora-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.49.0",
+    "@blocknote/react": "^0.49.0",
+    "@blocknote/mantine": "^0.49.0",
+    "@mantine/core": "^8.3.11",
+    "@mantine/hooks": "^8.3.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "katex": "^0.16.11",
+    "mermaid": "^11.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "happy-dom": "^15.11.7",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

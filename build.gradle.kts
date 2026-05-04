@@ -53,3 +53,26 @@ node {
     workDir.set(file("${project.projectDir}/.gradle/nodejs"))
     nodeProjectDir.set(file("${project.projectDir}/frontend"))
 }
+
+tasks.register<com.github.gradle.node.npm.task.NpmTask>("buildFrontend") {
+    group = "build"
+    description = "Bundle BlockNote editor with Vite"
+    dependsOn("npmInstall")
+    args.set(listOf("run", "build"))
+    inputs.dir("frontend/src")
+    inputs.file("frontend/package.json")
+    inputs.file("frontend/package-lock.json")
+    inputs.file("frontend/vite.config.ts")
+    inputs.file("frontend/index.html")
+    outputs.dir("src/main/resources/blocknote/dist")
+}
+
+tasks.named("processResources") {
+    dependsOn("buildFrontend")
+}
+
+tasks.named("clean") {
+    doLast {
+        delete("src/main/resources/blocknote/dist")
+    }
+}
