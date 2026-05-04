@@ -52,8 +52,12 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       const json = await res.json();
       const succMap = json?.data?.succMap ?? {};
       const firstKey = Object.keys(succMap)[0];
+      if (!firstKey) {
+        throw new Error(`uploadImage: server returned no succMap entries (code=${json?.code})`);
+      }
       const relativePath = succMap[firstKey] as string;
-      const dir = ctx.filePath.substring(0, ctx.filePath.lastIndexOf('/'));
+      const normalized = ctx.filePath.replace(/\\/g, '/');
+      const dir = normalized.substring(0, normalized.lastIndexOf('/'));
       const absolutePath = `${dir}/${relativePath}`;
       const url = `${ctx.serverUrl}api/local-image?path=${encodeURIComponent(absolutePath)}`;
       return { url };

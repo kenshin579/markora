@@ -67,3 +67,54 @@ describe('createBridge (real fetch)', () => {
     expect(result.url).toContain('images%2Fa.png');
   });
 });
+
+describe('uploadImage edge cases', () => {
+  it('throws when server returns empty succMap', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 1, data: { succMap: {} } }),
+    });
+    const b = createBridge({
+      filePath: '/tmp/x.md',
+      serverUrl: 'http://localhost:9000/',
+      initialTheme: 'light',
+    });
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    await expect(b.uploadImage(file)).rejects.toThrow(/no succMap entries/);
+  });
+
+  it('normalizes Windows backslash paths', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 0, data: { succMap: { 'a.png': 'images/a.png' } } }),
+    });
+    const b = createBridge({
+      filePath: 'C:\\Users\\foo\\bar.md',
+      serverUrl: 'http://localhost:9000/',
+      initialTheme: 'light',
+    });
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    const result = await b.uploadImage(file);
+    // Path should not contain undefined and should use forward slashes
+    expect(result.url).not.toContain('undefined');
+    expect(result.url).toContain('C%3A%2FUsers%2Ffoo%2Fimages%2Fa.png');
+  });
+});
+
+describe('onThemeChange', () => {
+  it('subscribes and unsubscribes via returned function', () => {
+    const b = createBridge({
+      filePath: '/tmp/x.md',
+      serverUrl: 'http://localhost:9000/',
+      initialTheme: 'light',
+    });
+    const cb = vi.fn();
+    const unsub = b.onThemeChange(cb);
+    window.markora.applyTheme('dark');
+    expect(cb).toHaveBeenCalledWith('dark');
+    cb.mockClear();
+    unsub();
+    window.markora.applyTheme('light');
+    expect(cb).not.toHaveBeenCalled();
+  });
+});
