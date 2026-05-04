@@ -929,11 +929,10 @@ describe('postParse: standard codeBlock → custom block', () => {
   });
 });
 
+// 위 import 줄에 splitInlineMath, joinInlineMath 추가:
+//   import { preSerialize, postParse, splitInlineMath, joinInlineMath } from '../customParse';
 describe('인라인 수식 분리', () => {
-  // splitInlineMath 함수: 인라인 KaTeX 처리는 Task 6에서 추가
-  // 여기서는 helper 형태로만 검증
   it('"text $a^2$ tail" → ["text ", katex(a^2), " tail"]', () => {
-    const { splitInlineMath } = require('../customParse');
     const out = splitInlineMath([{ type: 'text', text: 'text $a^2$ tail', styles: {} }]);
     expect(out).toHaveLength(3);
     expect(out[0]).toEqual({ type: 'text', text: 'text ', styles: {} });
@@ -942,13 +941,11 @@ describe('인라인 수식 분리', () => {
   });
 
   it('수식 없으면 입력 그대로', () => {
-    const { splitInlineMath } = require('../customParse');
     const input = [{ type: 'text', text: 'no math here', styles: {} }];
     expect(splitInlineMath(input)).toEqual(input);
   });
 
   it('직렬화: katexInline → "$source$" 텍스트', () => {
-    const { joinInlineMath } = require('../customParse');
     const input = [
       { type: 'text', text: 'a ', styles: {} },
       { type: 'katexInline', props: { source: 'x^2' } },
