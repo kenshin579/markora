@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
-import { useCreateBlockNote } from '@blocknote/react';
+import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
 import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
@@ -86,7 +86,38 @@ export function Editor({ bridge }: Props) {
 
   return (
     <div className="markora-shell">
-      <BlockNoteView editor={editor} theme={theme} />
+      <BlockNoteView editor={editor} theme={theme} slashMenu={false}>
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={async (query) => {
+            const defaults = getDefaultReactSlashMenuItems(editor as any);
+            const customs = [
+              {
+                title: 'Math (block)',
+                aliases: ['math', 'latex', 'equation', '수식'],
+                group: 'Advanced',
+                onItemClick: () => {
+                  editor.insertBlocks([{ type: 'katex', props: { source: '' } } as any], editor.getTextCursorPosition().block, 'after');
+                },
+              },
+              {
+                title: 'Math (inline)',
+                aliases: ['equation', 'inline', '인라인'],
+                group: 'Advanced',
+                onItemClick: () => {
+                  editor.insertInlineContent([{ type: 'katexInline', props: { source: 'x' } } as any]);
+                },
+              },
+            ];
+            const all = [...defaults, ...customs];
+            const q = query.toLowerCase();
+            return all.filter(it =>
+              it.title.toLowerCase().includes(q) ||
+              (it as any).aliases?.some((a: string) => a.toLowerCase().includes(q))
+            );
+          }}
+        />
+      </BlockNoteView>
       <div className="markora-status" data-status={status}>{status}</div>
     </div>
   );

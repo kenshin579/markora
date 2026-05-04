@@ -19,3 +19,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   background: #2b2d30;
   border-top-color: #3c3f41;
 }
+
+.markora-katex-render { padding: 8px 0; cursor: pointer; }
+.markora-katex-edit textarea { width: 100%; font-family: ui-monospace, monospace; padding: 8px; box-sizing: border-box; }
+.markora-katex-inline { cursor: pointer; }
+.markora-katex-inline-error { color: #c00; cursor: pointer; }
+.markora-katex-inline-edit input { font-family: ui-monospace, monospace; padding: 1px 4px; min-width: 80px; }
+.markora-error-box {
+  border: 1px solid #f0c36d;
+  background: #fff8e1;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #6b4f00;
+  margin: 8px 0;
+}
+.markora-error-title { font-weight: 600; margin-bottom: 4px; }
+.markora-error-message { font-family: ui-monospace, monospace; white-space: pre-wrap; margin: 4px 0; font-size: 12px; }
+.markora-error-hint { font-size: 12px; color: #8a6d00; margin-bottom: 8px; }
+.markora-error-actions { display: flex; gap: 8px; }
+.markora-error-actions button { padding: 4px 12px; border: 1px solid #d6b35c; background: #fff; border-radius: 3px; cursor: pointer; font-size: 12px; }
+.markora-error-actions button:hover { background: #fef3c7; }
+[data-mantine-color-scheme="dark"] .markora-error-box { background: #3a2f0e; color: #f0d780; border-color: #8a6d00; }
+[data-mantine-color-scheme="dark"] .markora-error-actions button { background: #2b2d30; color: #f0d780; border-color: #8a6d00; }

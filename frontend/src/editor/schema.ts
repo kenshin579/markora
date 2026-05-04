@@ -1,7 +1,8 @@
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from '@blocknote/core';
+import { KatexBlock } from '../blocks/KatexBlock';
+import { KatexInline } from '../inline/KatexInline';
 
-// KaTeX/Mermaid는 Task 6,7에서 이 schema에 추가됨
 export const schema = BlockNoteSchema.create({
-  blockSpecs: { ...defaultBlockSpecs },
-  inlineContentSpecs: { ...defaultInlineContentSpecs },
+  blockSpecs: { ...defaultBlockSpecs, katex: KatexBlock },
+  inlineContentSpecs: { ...defaultInlineContentSpecs, katexInline: KatexInline },
 });
