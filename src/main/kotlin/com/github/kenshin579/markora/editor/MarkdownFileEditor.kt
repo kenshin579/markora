@@ -25,7 +25,8 @@ class MarkdownFileEditor(
         connection.subscribe(EditorColorsManager.TOPIC, EditorColorsListener { scheme ->
             if (scheme != null) {
                 val isDark = ColorUtil.isDark(scheme.defaultBackground)
-                panel.executeJavaScript("switchTheme($isDark)")
+                val themeName = if (isDark) "dark" else "light"
+                panel.executeJavaScript("if (window.markora) window.markora.applyTheme('$themeName')")
             }
         })
     }
