@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PoC 1: Toast UI Editor</title>
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 16px; background: #f7f8fa; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 16px; margin: 0; color: #333; }
+  .badge { background: #1e6cda; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+  #editor { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .info { font-size: 12px; color: #666; margin-top: 8px; }
+  .err { color: #c00; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PoC 1 — Toast UI Editor (NHN, v3.2.2)</h1>
+  <span class="badge">vanilla JS · 듀얼 모드</span>
+</header>
+<div id="editor"></div>
+<p class="info">우측 상단의 <strong>Markdown / WYSIWYG</strong> 토글로 모드 전환을 확인할 수 있습니다.</p>
+<p class="err" id="err"></p>
+
+<script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
+<script>
+  const sample = `# Markora 에디터 비교 샘플
+
+## 1. 텍스트 서식
+
+**굵게**, *기울임*, ~~취소선~~, \`inline code\`, [링크](https://example.com)
+
+## 2. 목록
+
+- 항목 A
+- 항목 B
+  - 중첩 항목 B-1
+- 항목 C
+
+1. 첫 번째
+2. 두 번째
+
+## 3. 체크리스트
+
+- [x] 완료된 작업
+- [ ] 진행 중인 작업
+
+## 4. 인용
+
+> Markdown WYSIWYG 에디터 비교 샘플.
+
+## 5. 코드 블록
+
+\`\`\`javascript
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+\`\`\`
+
+## 6. 표
+
+| 라이브러리 | 모드 | 저장 포맷 |
+|-----------|------|----------|
+| Toast UI  | 듀얼 | Markdown |
+| Milkdown  | 인라인 | Markdown |
+| Tiptap    | WYSIWYG | HTML |
+
+---
+
+![placeholder](https://via.placeholder.com/300x150)
+`;
+
+  try {
+    if (typeof toastui === 'undefined' || !toastui.Editor) {
+      throw new Error('toastui.Editor 글로벌이 로드되지 않았습니다. CDN 로드 실패 가능성.');
+    }
+    const editor = new toastui.Editor({
+      el: document.querySelector('#editor'),
+      height: '85vh',
+      initialEditType: 'wysiwyg',
+      previewStyle: 'vertical',
+      initialValue: sample
+    });
+    window.__editor = editor;
+  } catch (e) {
+    document.getElementById('err').textContent = '에디터 초기화 실패: ' + e.message;
+    console.error(e);
+  }
+</script>
+</body>
+</html>

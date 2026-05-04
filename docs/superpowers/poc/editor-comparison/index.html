@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Markora — WYSIWYG Markdown Editor PoC 비교</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0; padding: 32px; background: #f7f8fa; color: #222;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 24px; }
+  .card {
+    background: #fff; border-radius: 8px; padding: 20px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid var(--accent, #888);
+  }
+  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  .card .meta { font-size: 13px; color: #666; margin-bottom: 10px; }
+  .card .desc { font-size: 14px; line-height: 1.6; color: #444; margin-bottom: 12px; }
+  .card a {
+    display: inline-block; padding: 8px 14px; border-radius: 5px;
+    background: var(--accent, #888); color: #fff; text-decoration: none; font-size: 13px;
+  }
+  .card a:hover { opacity: 0.9; }
+  .zero { --accent: #2ecc71; }
+  .one { --accent: #1e6cda; }
+  .two { --accent: #ff8a3c; }
+  .three { --accent: #6c5ce7; }
+  .four { --accent: #1abc9c; }
+  .baseline-tag { font-size: 11px; background: #2ecc71; color: #fff; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+  th, td { border-bottom: 1px solid #e0e3e8; padding: 8px 12px; text-align: left; }
+  th { background: #f1f3f5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>WYSIWYG Markdown Editor 비교 PoC</h1>
+  <p>현재 사용 중인 <strong>Vditor</strong>를 baseline으로 두고, 대안 후보들과 같은 샘플 마크다운으로 비교합니다.</p>
+
+  <div class="grid">
+    <div class="card zero">
+      <h2>0. Vditor <span class="baseline-tag">현재 사용 중</span></h2>
+      <div class="meta">B3log · 바닐라 JS · 트리플 모드 (WYSIWYG / IR / SV)</div>
+      <div class="desc">Markora가 현재 사용 중인 라이브러리. 비교 baseline.</div>
+      <a href="00-vditor.html">열어보기 →</a>
+    </div>
+    <div class="card one">
+      <h2>1. Toast UI Editor</h2>
+      <div class="meta">NHN · 바닐라 JS · 듀얼 모드 (Markdown ↔ WYSIWYG)</div>
+      <div class="desc">Vditor와 가장 유사한 아키텍처. 토글 버튼으로 모드를 자유롭게 전환하며, 마크다운이 1차 저장 포맷.</div>
+      <a href="01-toast-ui.html">열어보기 →</a>
+    </div>
+    <div class="card three">
+      <h2>2. Tiptap</h2>
+      <div class="meta">ProseMirror 기반 · headless · HTML 1차 저장</div>
+      <div class="desc">노션/구글 독스류 UX에 강점. 마크다운은 native가 아니어서 라운드트립 시 정보 손실 가능.</div>
+      <a href="03-tiptap.html">열어보기 →</a>
+    </div>
+    <div class="card four">
+      <h2>3. BlockNote</h2>
+      <div class="meta">React + Mantine · 블록 기반 · ProseMirror</div>
+      <div class="desc">Notion 스타일 블록 에디터. 슬래시 메뉴/드래그 핸들/블록 변환이 기본 내장. React 의존성으로 JCEF 통합 비용은 큼. 공식 데모 iframe으로 확인.</div>
+      <a href="04-blocknote.html">열어보기 →</a>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 32px;">한눈 비교</h2>
+  <table>
+    <tr><th>항목</th><th>Vditor (baseline)</th><th>Toast UI</th><th>Tiptap</th><th>BlockNote</th></tr>
+    <tr><td>저장 포맷</td><td>Markdown</td><td>Markdown</td><td>HTML/JSON</td><td>JSON 블록 (md 변환 가능)</td></tr>
+    <tr><td>모드</td><td>WYSIWYG / IR / SV</td><td>Markdown ↔ WYSIWYG</td><td>WYSIWYG</td><td>WYSIWYG (블록)</td></tr>
+    <tr><td>프레임워크</td><td>바닐라 JS</td><td>바닐라 JS</td><td>ProseMirror, headless</td><td><strong>React 강제</strong> + Mantine</td></tr>
+    <tr><td>JCEF 적합도</td><td>★★★★★ (검증됨)</td><td>★★★★★</td><td>★★★</td><td>★★ (React 빌드 필요)</td></tr>
+    <tr><td>슬래시 커맨드</td><td>hint API로 자체 구현</td><td>플러그인</td><td>플러그인</td><td><strong>기본 내장</strong></td></tr>
+    <tr><td>드래그 핸들/블록 변환</td><td>없음</td><td>없음</td><td>플러그인</td><td><strong>기본 내장</strong></td></tr>
+    <tr><td>수식 (KaTeX)</td><td>내장</td><td>플러그인</td><td>플러그인</td><td>커스텀 블록 필요</td></tr>
+    <tr><td>Mermaid</td><td>내장</td><td>플러그인</td><td>플러그인</td><td>커스텀 블록 필요</td></tr>
+    <tr><td>유지보수 활성도</td><td>중간</td><td>활발</td><td>매우 활발</td><td>매우 활발</td></tr>
+  </table>
+</div>
+</body>
+</html>

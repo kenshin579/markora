@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PoC 0: Vditor (현재 사용 중)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vditor@3.11.2/dist/index.css">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 16px; background: #f7f8fa; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 16px; margin: 0; color: #333; }
+  .badge { background: #2ecc71; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+  #vditor { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .info { font-size: 12px; color: #666; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PoC 0 — Vditor v3.11.2 (현재 Markora가 사용 중)</h1>
+  <span class="badge">baseline · 바닐라 JS · 다중 모드</span>
+</header>
+<div id="vditor"></div>
+<p class="info">툴바의 모드 아이콘으로 <strong>WYSIWYG / Instant Render(IR) / Source(SV)</strong> 3가지 모드를 전환할 수 있습니다.</p>
+
+<script src="https://cdn.jsdelivr.net/npm/vditor@3.11.2/dist/index.min.js"></script>
+<script>
+  const sample = `# Markora 에디터 비교 샘플
+
+## 1. 텍스트 서식
+
+**굵게**, *기울임*, ~~취소선~~, \`inline code\`, [링크](https://example.com)
+
+## 2. 목록
+
+- 항목 A
+- 항목 B
+  - 중첩 항목 B-1
+- 항목 C
+
+1. 첫 번째
+2. 두 번째
+
+## 3. 체크리스트
+
+- [x] 완료된 작업
+- [ ] 진행 중인 작업
+
+## 4. 인용
+
+> Markdown WYSIWYG 에디터 비교 샘플.
+
+## 5. 코드 블록
+
+\`\`\`javascript
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+\`\`\`
+
+## 6. 표
+
+| 라이브러리 | 모드 | 저장 포맷 |
+|-----------|------|----------|
+| Vditor    | 트리플 (WYSIWYG/IR/SV) | Markdown |
+| Toast UI  | 듀얼 (WYSIWYG/MD) | Markdown |
+| Tiptap    | WYSIWYG | HTML |
+
+## 7. 수식 (KaTeX)
+
+인라인: $E = mc^2$
+
+$$
+\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
+$$
+
+---
+
+![placeholder](https://via.placeholder.com/300x150)
+`;
+
+  const vditor = new Vditor('vditor', {
+    height: '85vh',
+    mode: 'wysiwyg',
+    value: sample,
+    cache: { enable: false },
+    theme: 'classic',
+    preview: {
+      hljs: { enable: true, lineNumber: true },
+      math: { engine: 'KaTeX' }
+    }
+  });
+  window.__vditor = vditor;
+</script>
+</body>
+</html>

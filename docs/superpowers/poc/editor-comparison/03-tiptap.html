@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PoC 3: Tiptap</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 16px; background: #f7f8fa; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 16px; margin: 0; color: #333; }
+  .badge { background: #6c5ce7; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+  #editor {
+    background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 24px; min-height: 80vh;
+  }
+  .ProseMirror { outline: none; min-height: 75vh; line-height: 1.7; }
+  .ProseMirror h1 { font-size: 1.8em; margin: 0.6em 0 0.3em; }
+  .ProseMirror h2 { font-size: 1.4em; margin: 0.6em 0 0.3em; }
+  .ProseMirror h3 { font-size: 1.2em; margin: 0.6em 0 0.3em; }
+  .ProseMirror code { background: #f1f3f5; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+  .ProseMirror pre { background: #1f2430; color: #e6e1cf; padding: 12px 16px; border-radius: 6px; overflow-x: auto; }
+  .ProseMirror pre code { background: transparent; color: inherit; padding: 0; }
+  .ProseMirror blockquote { border-left: 3px solid #ccc; margin: 0.6em 0; padding: 0.2em 1em; color: #555; }
+  .ProseMirror table { border-collapse: collapse; margin: 1em 0; }
+  .ProseMirror th, .ProseMirror td { border: 1px solid #ddd; padding: 6px 12px; }
+  .ProseMirror th { background: #f1f3f5; }
+  .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
+  .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; }
+  .toolbar { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+  .toolbar button {
+    border: 1px solid #ddd; background: #fff; padding: 4px 10px; border-radius: 4px;
+    cursor: pointer; font-size: 13px;
+  }
+  .toolbar button:hover { background: #eef0f3; }
+  .toolbar button.active { background: #e0e7ff; border-color: #6366f1; }
+  .info { font-size: 12px; color: #666; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PoC 3 — Tiptap (ProseMirror 기반)</h1>
+  <span class="badge">HTML 1차 · headless</span>
+</header>
+
+<div class="toolbar" id="toolbar">
+  <button data-cmd="bold"><b>B</b></button>
+  <button data-cmd="italic"><i>I</i></button>
+  <button data-cmd="strike"><s>S</s></button>
+  <button data-cmd="code">{}</button>
+  <button data-cmd="h1">H1</button>
+  <button data-cmd="h2">H2</button>
+  <button data-cmd="h3">H3</button>
+  <button data-cmd="bulletList">• List</button>
+  <button data-cmd="orderedList">1. List</button>
+  <button data-cmd="taskList">☑ Task</button>
+  <button data-cmd="blockquote">❝ Quote</button>
+  <button data-cmd="codeBlock">code block</button>
+  <button data-cmd="hr">―</button>
+</div>
+
+<div id="editor"></div>
+<p class="info">Tiptap은 마크다운이 아닌 HTML/JSON을 1차 모델로 사용합니다. 마크다운 입출력은 별도 파서(예: <code>marked</code>, <code>turndown</code>)로 보강해야 합니다.</p>
+
+<script type="module">
+  import { Editor } from 'https://esm.sh/@tiptap/core@2.10.3';
+  import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.10.3';
+  import TaskList from 'https://esm.sh/@tiptap/extension-task-list@2.10.3';
+  import TaskItem from 'https://esm.sh/@tiptap/extension-task-item@2.10.3';
+  import Link from 'https://esm.sh/@tiptap/extension-link@2.10.3';
+  import Image from 'https://esm.sh/@tiptap/extension-image@2.10.3';
+  import Table from 'https://esm.sh/@tiptap/extension-table@2.10.3';
+  import TableRow from 'https://esm.sh/@tiptap/extension-table-row@2.10.3';
+  import TableHeader from 'https://esm.sh/@tiptap/extension-table-header@2.10.3';
+  import TableCell from 'https://esm.sh/@tiptap/extension-table-cell@2.10.3';
+
+  const sampleHTML = `
+    <h1>Markora 에디터 비교 샘플</h1>
+    <h2>1. 텍스트 서식</h2>
+    <p><strong>굵게</strong>, <em>기울임</em>, <s>취소선</s>, <code>inline code</code>,
+       <a href="https://example.com">링크</a></p>
+    <h2>2. 목록</h2>
+    <ul>
+      <li>항목 A</li>
+      <li>항목 B
+        <ul><li>중첩 항목 B-1</li></ul>
+      </li>
+      <li>항목 C</li>
+    </ul>
+    <ol><li>첫 번째</li><li>두 번째</li></ol>
+    <h2>3. 체크리스트</h2>
+    <ul data-type="taskList">
+      <li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked><span></span></label><div>완료된 작업</div></li>
+      <li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div>진행 중인 작업</div></li>
+    </ul>
+    <h2>4. 인용</h2>
+    <blockquote><p>Markdown WYSIWYG 에디터 비교 샘플.</p></blockquote>
+    <h2>5. 코드 블록</h2>
+    <pre><code class="language-javascript">function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}</code></pre>
+    <h2>6. 표</h2>
+    <table>
+      <tr><th>라이브러리</th><th>모드</th><th>저장 포맷</th></tr>
+      <tr><td>Toast UI</td><td>듀얼</td><td>Markdown</td></tr>
+      <tr><td>Milkdown</td><td>인라인</td><td>Markdown</td></tr>
+      <tr><td>Tiptap</td><td>WYSIWYG</td><td>HTML</td></tr>
+    </table>
+    <hr>
+    <p><img src="https://via.placeholder.com/300x150" alt="placeholder"></p>
+  `;
+
+  const editor = new Editor({
+    element: document.querySelector('#editor'),
+    extensions: [
+      StarterKit,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Link.configure({ openOnClick: false }),
+      Image,
+      Table.configure({ resizable: true }),
+      TableRow, TableHeader, TableCell,
+    ],
+    content: sampleHTML,
+  });
+
+  document.getElementById('toolbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-cmd]');
+    if (!btn) return;
+    const cmd = btn.dataset.cmd;
+    const c = editor.chain().focus();
+    switch (cmd) {
+      case 'bold': c.toggleBold().run(); break;
+      case 'italic': c.toggleItalic().run(); break;
+      case 'strike': c.toggleStrike().run(); break;
+      case 'code': c.toggleCode().run(); break;
+      case 'h1': c.toggleHeading({ level: 1 }).run(); break;
+      case 'h2': c.toggleHeading({ level: 2 }).run(); break;
+      case 'h3': c.toggleHeading({ level: 3 }).run(); break;
+      case 'bulletList': c.toggleBulletList().run(); break;
+      case 'orderedList': c.toggleOrderedList().run(); break;
+      case 'taskList': c.toggleTaskList().run(); break;
+      case 'blockquote': c.toggleBlockquote().run(); break;
+      case 'codeBlock': c.toggleCodeBlock().run(); break;
+      case 'hr': c.setHorizontalRule().run(); break;
+    }
+  });
+</script>
+</body>
+</html>

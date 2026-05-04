@@ -3,7 +3,7 @@
 - **작성일**: 2026-05-04
 - **대상 릴리스**: Markora v1 (BlockNote 기반)
 - **상태**: 작성 완료, 사용자 리뷰 대기
-- **선행 산출물**: `poc/editor-comparison/` (Vditor / Toast UI / Tiptap / BlockNote 비교 PoC)
+- **선행 산출물**: `docs/superpowers/poc/editor-comparison/` (Vditor / Toast UI / Tiptap / BlockNote 비교 PoC)
 
 ## 배경
 
@@ -472,4 +472,4 @@ PR: feature/blocknote-migration
 
 ## 부록: PoC 결정 근거
 
-`poc/editor-comparison/` 폴더에 Vditor / Toast UI / Tiptap / BlockNote 비교 PoC가 있다. 사용자는 `04-blocknote.html`(공식 데모 iframe)을 통해 BlockNote의 실제 UX를 확인했고, Notion 스타일 UX(드래그 핸들, `+` 버튼, 슬래시 메뉴, 블록 변환)가 핵심 가치라고 결정했다. README의 기존 feature 약속은 v1에서는 BlockNote 기본 동작으로 대체하기로 합의했다.
+`docs/superpowers/poc/editor-comparison/` 폴더에 Vditor / Toast UI / Tiptap / BlockNote 비교 PoC가 있다. 사용자는 `04-blocknote.html`(공식 데모 iframe)을 통해 BlockNote의 실제 UX를 확인했고, Notion 스타일 UX(드래그 핸들, `+` 버튼, 슬래시 메뉴, 블록 변환)가 핵심 가치라고 결정했다. README의 기존 feature 약속은 v1에서는 BlockNote 기본 동작으로 대체하기로 합의했다.
