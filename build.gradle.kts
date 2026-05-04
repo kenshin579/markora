@@ -63,6 +63,8 @@ tasks.register<com.github.gradle.node.npm.task.NpmTask>("buildFrontend") {
     inputs.file("frontend/package.json")
     inputs.file("frontend/package-lock.json")
     inputs.file("frontend/vite.config.ts")
+    inputs.file("frontend/tsconfig.json")
+    inputs.file("frontend/tsconfig.node.json")
     inputs.file("frontend/index.html")
     outputs.dir("src/main/resources/blocknote/dist")
 }
