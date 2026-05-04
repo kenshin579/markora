@@ -2,6 +2,7 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
     id("org.jetbrains.intellij.platform")
+    id("com.github.node-gradle.node") version "7.0.2"
 }
 
 group = "com.github.kenshin579"
@@ -43,4 +44,12 @@ intellijPlatform {
             untilBuild = provider { null }
         }
     }
+}
+
+node {
+    version.set("20.18.0")
+    npmVersion.set("10.8.2")
+    download.set(true)
+    workDir.set(file("${project.projectDir}/.gradle/nodejs"))
+    nodeProjectDir.set(file("${project.projectDir}/frontend"))
 }
