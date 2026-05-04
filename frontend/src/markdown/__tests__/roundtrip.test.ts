@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { preSerialize, postParse, splitInlineMath, joinInlineMath } from '../customParse';
 
+
 describe('preSerialize: custom block → standard codeBlock', () => {
   it('katex 블록을 ```math 코드블록으로 치환', () => {
     const blocks = [{ type: 'katex', props: { source: 'x^2' } }];
@@ -96,5 +97,60 @@ describe('인라인 수식 분리', () => {
     expect(joinInlineMath(input)).toEqual([
       { type: 'text', text: 'a $x^2$ b', styles: {} },
     ]);
+  });
+});
+
+describe('regressions: input immutability', () => {
+  it('joinInlineMath은 입력을 변경하지 않는다 (idempotent)', () => {
+    const input = [
+      { type: 'text', text: 'a ', styles: {} },
+      { type: 'katexInline', props: { source: 'x' } },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(input));
+    joinInlineMath(input as any);
+    joinInlineMath(input as any);
+    expect(input).toEqual(snapshot);
+  });
+});
+
+describe('regressions: false-positive math', () => {
+  it('통화 표현 "$10 vs $20"은 수식이 아니다', () => {
+    const out = splitInlineMath([{ type: 'text', text: 'price $10 vs $20', styles: {} }]);
+    expect(out).toEqual([{ type: 'text', text: 'price $10 vs $20', styles: {} }]);
+  });
+
+  it('이스케이프된 \\$은 수식이 아니다', () => {
+    const out = splitInlineMath([{ type: 'text', text: 'cost \\$5 only', styles: {} }]);
+    expect(out).toEqual([{ type: 'text', text: 'cost \\$5 only', styles: {} }]);
+  });
+
+  it('$$display$$ 패턴은 인라인 수식이 아니다 (블록 수식)', () => {
+    const out = splitInlineMath([{ type: 'text', text: 'see $$x^2$$ here', styles: {} }]);
+    expect(out).toEqual([{ type: 'text', text: 'see $$x^2$$ here', styles: {} }]);
+  });
+});
+
+describe('regressions: scope of inline math', () => {
+  it('codeBlock 내부 텍스트는 inline math로 분리하지 않는다', () => {
+    const blocks = [{
+      type: 'codeBlock',
+      props: { language: 'javascript' },
+      content: [{ type: 'text', text: 'let price = $10;', styles: {} }],
+    }];
+    expect(postParse(blocks as any)).toEqual(blocks);
+  });
+});
+
+describe('regressions: children key 보존', () => {
+  it('preSerialize: children 없는 입력은 children 키도 없어야 함', () => {
+    const blocks = [{ type: 'paragraph', content: [{ type: 'text', text: 'hi', styles: {} }] }];
+    const out = preSerialize(blocks as any);
+    expect('children' in out[0]).toBe(false);
+  });
+
+  it('postParse: children 없는 입력은 children 키도 없어야 함', () => {
+    const blocks = [{ type: 'paragraph', content: [{ type: 'text', text: 'hi', styles: {} }] }];
+    const out = postParse(blocks as any);
+    expect('children' in out[0]).toBe(false);
   });
 });
