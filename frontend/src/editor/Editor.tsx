@@ -108,6 +108,18 @@ export function Editor({ bridge }: Props) {
                   editor.insertInlineContent([{ type: 'katexInline', props: { source: 'x' } } as any]);
                 },
               },
+              {
+                title: 'Mermaid',
+                aliases: ['mermaid', 'diagram', 'flowchart', '다이어그램'],
+                group: 'Advanced',
+                onItemClick: () => {
+                  editor.insertBlocks(
+                    [{ type: 'mermaid', props: { source: '' } } as any],
+                    editor.getTextCursorPosition().block,
+                    'after'
+                  );
+                },
+              },
             ];
             const all = [...defaults, ...customs];
             const q = query.toLowerCase();
