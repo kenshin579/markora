@@ -9,38 +9,26 @@ Markora brings a distraction-free, rich visual Markdown editing experience direc
 
 ## Features
 
-- **WYSIWYG Editing** — Edit Markdown with instant visual rendering powered by [Vditor](https://github.com/Vanessa219/vditor)
-- **Dual Mode** — Switch between WYSIWYG and Source mode
+- **WYSIWYG Editing** — Notion-style block editor powered by [BlockNote](https://www.blocknotejs.org/)
+- **Block UX** — Drag handle, slash menu (`/`), block transforms, inline formatting
 - **Theme Sync** — Automatically matches your IDE's Dark/Light theme
 - **Auto-Save** — Changes are saved automatically with a configurable debounce delay
 - **Image Support** — Drag & drop or paste images from clipboard; stored in a local `images/` directory with relative paths
-- **LaTeX Math** — Inline (`$...$`) and block (`$$...$$`) math rendering via KaTeX
-- **Mermaid Diagrams** — Render flowcharts, sequence diagrams, gantt charts, and more
-- **Slash Commands** — Type `/` to quickly insert headings, lists, code blocks, tables, math, diagrams, and more
-- **Code Blocks** — Syntax highlighting with line numbers
-- **Emoji** — Support for `:emoji:` syntax
-- **HTML Export** — Export your Markdown files to HTML
+- **LaTeX Math** — Inline (`$...$`) and block (` ```math `) math rendering via KaTeX
+- **Mermaid Diagrams** — Render flowcharts, sequence diagrams, gantt charts, and more (` ```mermaid `)
 - **External Links** — Links open in your system browser
 
 ## Slash Commands
 
-Type `/` in the editor to access quick-insert commands:
+Type `/` in the editor to access BlockNote's default block menu (heading, list, quote, code, table, image, etc.) plus Markora-specific items:
 
 | Command | Description |
 |---------|-------------|
-| `/h1` ~ `/h6` | Headings |
-| `/bullet` | Unordered list |
-| `/num` | Ordered list |
-| `/todo` | Checklist |
-| `/quote` | Block quote |
-| `/code` | Code block |
-| `/table` | Table |
-| `/image` | Image |
-| `/equation` | Inline LaTeX |
-| `/math` | Block LaTeX |
-| `/mermaid` | Mermaid diagram |
-| `/toc` | Table of contents |
-| `/div` | Horizontal divider |
+| `/math` | LaTeX math block (` ```math `) |
+| `/equation` | Inline LaTeX (`$...$`) |
+| `/mermaid` | Mermaid diagram block (` ```mermaid `) |
+
+For the full list of standard blocks, see [BlockNote documentation](https://www.blocknotejs.org/docs/editor-basics/default-schema).
 
 ## Requirements
 
@@ -66,7 +54,6 @@ Type `/` in the editor to access quick-insert commands:
 1. Open any `.md` file in your JetBrains IDE
 2. Select the **Markora** editor tab (appears alongside the default editor)
 3. Start editing in WYSIWYG mode
-4. Use the status bar buttons at the bottom to switch between **WYSIWYG** and **Source** mode
 
 ## Settings
 
@@ -74,10 +61,8 @@ Configure the plugin at **Settings** > **Tools** > **Markora**:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Default Mode | WYSIWYG or Source | WYSIWYG |
 | Font Size | Editor font size (px) | 16 |
 | Auto-Save Delay | Save debounce time (ms) | 1000 |
-| Show Line Numbers | Line numbers in code blocks | true |
 
 ## Building from Source
 
@@ -85,6 +70,9 @@ Configure the plugin at **Settings** > **Tools** > **Markora**:
 # Clone the repository
 git clone https://github.com/kenshin579/intellij-plugin-markdown-editor.git
 cd intellij-plugin-markdown-editor
+
+# First build downloads Node 20.18.0 to .gradle/nodejs/ (managed by gradle-node-plugin).
+# No system Node required.
 
 # Build the plugin
 ./gradlew build
@@ -103,7 +91,8 @@ cd intellij-plugin-markdown-editor
 - **Kotlin** — Plugin source code
 - **IntelliJ Platform SDK** — IDE integration
 - **JCEF** (Chromium Embedded Framework) — Web-based editor rendering
-- **Vditor** — Open-source Markdown WYSIWYG editor library
+- **BlockNote** — Notion-style React block editor
+- **Vite + React** — Frontend bundle pipeline
 - **KaTeX** — LaTeX math rendering
 - **Mermaid** — Diagram rendering
 
