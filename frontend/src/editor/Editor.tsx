@@ -5,6 +5,7 @@ import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
 import { postParse, preSerialize } from '../markdown/customParse';
+import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 
 interface Props {
   bridge: MarkoraBridge;
@@ -81,7 +82,15 @@ export function Editor({ bridge }: Props) {
 
   // 테마 동기화
   useEffect(() => {
-    return bridge.onThemeChange((t) => setTheme(t));
+    return bridge.onThemeChange((t) => {
+      setTheme(t);
+      reinitOnThemeChange(t);
+    });
+  }, [bridge]);
+
+  // 마운트 시 initialTheme 즉시 반영
+  useEffect(() => {
+    reinitOnThemeChange(bridge.getContext().initialTheme);
   }, [bridge]);
 
   return (

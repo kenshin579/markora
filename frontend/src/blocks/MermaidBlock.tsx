@@ -24,6 +24,16 @@ export async function renderMermaidToSvg(id: string, source: string): Promise<{ 
   }
 }
 
+const themeReinitListeners = new Set<() => void>();
+export function reinitOnThemeChange(theme: 'light' | 'dark') {
+  initMermaid(theme);
+  themeReinitListeners.forEach(cb => cb());
+}
+export function subscribeMermaidReinit(cb: () => void): () => void {
+  themeReinitListeners.add(cb);
+  return () => { themeReinitListeners.delete(cb); };
+}
+
 let counter = 0;
 const nextId = () => `markora-mermaid-${++counter}`;
 
@@ -40,6 +50,7 @@ export const MermaidBlock = createReactBlockSpec(
       const [debounced, setDebounced] = useState(block.props.source);
       const [svg, setSvg] = useState<string>('');
       const [error, setError] = useState<string | null>(null);
+      const [renderVersion, setRenderVersion] = useState(0);
       const timerRef = useRef<number | null>(null);
       const idRef = useRef<string>(nextId());
 
@@ -55,6 +66,8 @@ export const MermaidBlock = createReactBlockSpec(
         return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
       }, [draft]);
 
+      useEffect(() => subscribeMermaidReinit(() => setRenderVersion(v => v + 1)), []);
+
       useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -62,7 +75,7 @@ export const MermaidBlock = createReactBlockSpec(
           if (!cancelled) { setSvg(r.svg); setError(r.error); }
         })();
         return () => { cancelled = true; };
-      }, [debounced]);
+      }, [debounced, renderVersion]);
 
       const commit = () => {
         if (draft !== block.props.source) {
