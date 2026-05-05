@@ -4,20 +4,31 @@ import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuI
 import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
-import { postParse, preSerialize } from '../markdown/customParse';
+import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 
 interface Props {
   bridge: MarkoraBridge;
 }
 
+const INLINE_MATH_BLOCK_TYPES = new Set([
+  'paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'checkListItem', 'quote',
+]);
+
 export function Editor({ bridge }: Props) {
-  const editor = useCreateBlockNote({ schema });
+  const editor = useCreateBlockNote({
+    schema,
+    uploadFile: async (file: File) => {
+      const { url } = await bridge.uploadImage(file);
+      return url;
+    },
+  });
   const [theme, setTheme] = useState<Theme>(bridge.getContext().initialTheme);
   const [status, setStatus] = useState<string>('Ready');
   const isDirtyRef = useRef(false);
   const lastKnownContentRef = useRef<string>('');
   const saveTimerRef = useRef<number | null>(null);
+  const loadedRef = useRef(false);   // 초기 load 완료 여부 (load-induced onChange를 user edit과 구분)
 
   // 초기 로드
   useEffect(() => {
@@ -30,10 +41,13 @@ export function Editor({ bridge }: Props) {
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = md;
         isDirtyRef.current = false;
+        // replaceBlocks가 트리거한 onChange는 user edit이 아님 — 다음 tick 이후로 onChange를 user edit으로 인정
+        window.setTimeout(() => { loadedRef.current = true; }, 0);
         setStatus('Ready');
       } catch (e) {
-        console.error(e);
-        setStatus('Load failed');
+        console.error('loadFile failed:', e);
+        const msg = e instanceof Error ? e.message : String(e);
+        setStatus(`Load failed: ${msg.substring(0, 80)}`);
       }
     })();
     return () => { cancelled = true; };
@@ -42,6 +56,8 @@ export function Editor({ bridge }: Props) {
   // onChange → 디바운스 저장
   useEffect(() => {
     return editor.onChange(() => {
+      // 초기 load가 트리거한 onChange는 무시 (user edit만 dirty 처리)
+      if (!loadedRef.current) return;
       isDirtyRef.current = true;
       setStatus('Modified');
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
@@ -57,12 +73,42 @@ export function Editor({ bridge }: Props) {
             if (!isDirtyRef.current) setStatus('Ready');
           }, 2000);
         } catch (e) {
-          console.error(e);
-          setStatus('Save failed (kept previous)');
+          console.error('saveFile failed:', e);
+          const msg = e instanceof Error ? e.message : String(e);
+          setStatus(`Save failed: ${msg.substring(0, 80)}`);
         }
       }, 1000);
     });
   }, [editor, bridge]);
+
+  // 인라인 수식 자동 변환: 사용자가 블록을 떠날 때 직전 블록의 텍스트에서 $...$ 패턴을 인라인 KaTeX 노드로 split
+  useEffect(() => {
+    let lastBlockId: string | null = null;
+    return editor.onSelectionChange(() => {
+      try {
+        const currentBlockId = editor.getTextCursorPosition().block?.id ?? null;
+        if (lastBlockId !== null && lastBlockId !== currentBlockId) {
+          const prevBlock = editor.getBlock(lastBlockId);
+          if (prevBlock && INLINE_MATH_BLOCK_TYPES.has(prevBlock.type) && Array.isArray(prevBlock.content)) {
+            const hasDollarText = (prevBlock.content as any[]).some(
+              (n) => n?.type === 'text' && typeof n.text === 'string' && n.text.includes('$')
+            );
+            if (hasDollarText) {
+              const splitContent = splitInlineMath(prevBlock.content as any);
+              const before = JSON.stringify(prevBlock.content);
+              const after = JSON.stringify(splitContent);
+              if (before !== after) {
+                editor.updateBlock(prevBlock, { content: splitContent } as any);
+              }
+            }
+          }
+        }
+        lastBlockId = currentBlockId;
+      } catch (e) {
+        console.error('inline math split failed:', e);
+      }
+    });
+  }, [editor]);
 
   // 외부 변경 감지 (focus)
   useEffect(() => {

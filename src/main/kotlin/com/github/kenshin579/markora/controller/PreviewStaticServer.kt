@@ -15,8 +15,8 @@ class PreviewStaticServer : HttpRequestHandler() {
     }
 
     override fun isSupported(request: FullHttpRequest): Boolean {
-        return super.isSupported(request) &&
-            request.uri().startsWith(PREFIX) &&
+        // super.isSupported는 GET/HEAD만 허용 → POST 차단됨. 직접 체크로 교체.
+        return request.uri().startsWith(PREFIX) &&
             (request.method() == HttpMethod.GET || request.method() == HttpMethod.POST)
     }
 

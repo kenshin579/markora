@@ -51,7 +51,9 @@ object ResourcesController {
         )
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "$contentType; charset=UTF-8")
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH, bytes.size)
-        response.headers().set(HttpHeaderNames.CACHE_CONTROL, "max-age=3600")
+        // index.html은 no-cache, hash가 포함된 자산은 1시간 캐시
+        val cacheControl = if (resourcePath.endsWith("index.html")) "no-cache, no-store, must-revalidate" else "max-age=3600"
+        response.headers().set(HttpHeaderNames.CACHE_CONTROL, cacheControl)
 
         context.channel().writeAndFlush(response)
         return true

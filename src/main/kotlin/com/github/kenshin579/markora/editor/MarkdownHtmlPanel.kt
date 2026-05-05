@@ -80,7 +80,8 @@ class MarkdownHtmlPanel(
         val params = listOf(
             "filePath=" + java.net.URLEncoder.encode(file.path, Charsets.UTF_8),
             "serverUrl=" + java.net.URLEncoder.encode(serverUrl, Charsets.UTF_8),
-            "dark=$isDark"
+            "dark=$isDark",
+            "_t=${System.currentTimeMillis()}"
         ).joinToString("&")
         val url = "${serverUrl}resources/blocknote/dist/index.html?$params"
         browser.loadURL(url)
