@@ -5,9 +5,9 @@ import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.*
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory
+import io.netty.handler.codec.http.multipart.FileUpload
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder
 import io.netty.handler.codec.http.multipart.InterfaceHttpData
-import io.netty.handler.codec.http.multipart.MemoryFileUpload
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
@@ -47,7 +47,8 @@ object ImageUploadController {
             while (decoder.hasNext()) {
                 val data = decoder.next()
                 if (data.httpDataType == InterfaceHttpData.HttpDataType.FileUpload) {
-                    val fileUpload = data as MemoryFileUpload
+                    // Memory/Disk/Mixed FileUpload 모두 FileUpload 인터페이스 구현
+                    val fileUpload = data as FileUpload
                     val originalName = fileUpload.filename
                     val extension = originalName.substringAfterLast('.', "png")
 

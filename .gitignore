@@ -22,3 +22,9 @@ build/idea-sandbox/
 
 # IntelliJ Platform
 .intellijPlatform/
+
+# BlockNote 빌드 산출물 (Gradle이 항상 재생성)
+src/main/resources/blocknote/dist/
+
+# gradle-node-plugin이 다운로드한 node 바이너리
+.gradle/nodejs/

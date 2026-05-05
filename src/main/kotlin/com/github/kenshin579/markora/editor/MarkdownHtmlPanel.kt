@@ -75,31 +75,16 @@ class MarkdownHtmlPanel(
     }
 
     private fun loadEditor() {
-        val template = loadTemplate()
-        if (template != null) {
-            val serverUrl = PreviewStaticServer.getServiceUrl()
-            val isDark = EditorColorsManager.getInstance().isDarkEditor
-
-            val html = template
-                .replace("{{serverUrl}}", serverUrl)
-                .replace("{{filePath}}", file.path)
-                .replace("{{darcula}}", isDark.toString())
-
-            browser.loadHTML(html)
-        } else {
-            LOG.error("Failed to load editor.html template")
-            browser.loadHTML("<html><body><h1>Error: Template not found</h1></body></html>")
-        }
-    }
-
-    private fun loadTemplate(): String? {
-        return try {
-            val inputStream = javaClass.classLoader.getResourceAsStream("template/editor.html")
-            inputStream?.bufferedReader()?.readText()
-        } catch (e: Exception) {
-            LOG.error("Failed to read editor template", e)
-            null
-        }
+        val serverUrl = PreviewStaticServer.getServiceUrl()
+        val isDark = EditorColorsManager.getInstance().isDarkEditor
+        val params = listOf(
+            "filePath=" + java.net.URLEncoder.encode(file.path, Charsets.UTF_8),
+            "serverUrl=" + java.net.URLEncoder.encode(serverUrl, Charsets.UTF_8),
+            "dark=$isDark",
+            "_t=${System.currentTimeMillis()}"
+        ).joinToString("&")
+        val url = "${serverUrl}resources/blocknote/dist/index.html?$params"
+        browser.loadURL(url)
     }
 
     fun executeJavaScript(script: String) {

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>PoC 4: BlockNote</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 16px; background: #f7f8fa; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h1 { font-size: 16px; margin: 0; color: #333; }
+  .badge { background: #1abc9c; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; }
+  .info { font-size: 13px; color: #555; margin: 0 0 12px; line-height: 1.6; }
+  .info code { background: #eef0f3; padding: 1px 5px; border-radius: 3px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tabs button {
+    border: 1px solid #ddd; background: #fff; padding: 6px 14px; border-radius: 4px;
+    cursor: pointer; font-size: 13px;
+  }
+  .tabs button.active { background: #1abc9c; color: #fff; border-color: #1abc9c; }
+  iframe {
+    width: 100%; height: 82vh; border: 1px solid #ddd; border-radius: 6px;
+    background: #fff; display: block;
+  }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .meta { font-size: 12px; color: #777; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PoC 4 — BlockNote v0.49.0 (Notion 스타일 블록 에디터)</h1>
+  <span class="badge">React · 블록 기반 · ProseMirror</span>
+</header>
+
+<p class="info">
+  BlockNote는 <strong>React + Mantine</strong> 기반 블록 에디터입니다. 정적 HTML에서 직접 임베드하려면 React 빌드가 필요해
+  공식 데모를 iframe으로 표시합니다. 슬래시(<code>/</code>) 메뉴, 드래그 핸들, 블록 변환 UX를 그대로 확인할 수 있습니다.
+</p>
+
+<div class="tabs">
+  <button class="tab-btn active" data-target="basic">기본 블록 데모</button>
+  <button class="tab-btn" data-target="full">전체 데모 페이지</button>
+  <button class="tab-btn" data-target="multi">멀티 컬럼 데모</button>
+</div>
+
+<div class="pane active" id="basic">
+  <iframe src="https://www.blocknotejs.org/examples/basic/default-blocks"
+          loading="lazy" title="BlockNote default blocks demo"></iframe>
+  <p class="meta">URL: <code>https://www.blocknotejs.org/examples/basic/default-blocks</code></p>
+</div>
+
+<div class="pane" id="full">
+  <iframe src="" loading="lazy" data-src="https://www.blocknotejs.org/demo" title="BlockNote demo"></iframe>
+  <p class="meta">URL: <code>https://www.blocknotejs.org/demo</code></p>
+</div>
+
+<div class="pane" id="multi">
+  <iframe src="" loading="lazy" data-src="https://www.blocknotejs.org/examples/basic/multi-column" title="BlockNote multi-column"></iframe>
+  <p class="meta">URL: <code>https://www.blocknotejs.org/examples/basic/multi-column</code></p>
+</div>
+
+<script>
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const pane = document.getElementById(btn.dataset.target);
+      pane.classList.add('active');
+      // lazy-load iframe src
+      const iframe = pane.querySelector('iframe');
+      if (iframe && !iframe.src && iframe.dataset.src) {
+        iframe.src = iframe.dataset.src;
+      }
+    });
+  });
+</script>
+</body>
+</html>
