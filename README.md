@@ -4,8 +4,7 @@ A WYSIWYG Markdown editor plugin for JetBrains IDEs.
 
 Markora brings a distraction-free, rich visual Markdown editing experience directly into your JetBrains IDE. Edit Markdown files with real-time rendering — no split pane, no preview panel, just seamless WYSIWYG editing.
 
-<!-- TODO: Add screenshot -->
-<!-- ![Markora Screenshot](docs/images/screenshot.png) -->
+![Markora editing a Markdown file inside IntelliJ IDEA — Mermaid diagram and table rendered inline, Markora editor tab selected](docs/screenshots/01-hero-dark.png)
 
 ## Features
 
