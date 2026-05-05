@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
-  <rect width="40" height="40" rx="8" fill="#2563eb"/>
-  <text x="20" y="28" text-anchor="middle" font-family="-apple-system, system-ui, sans-serif" font-size="26" font-weight="700" fill="#fff">M</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="80" height="80" rx="16" fill="url(#g)"/>
+  <g fill="#fff">
+    <g opacity="0.65">
+      <rect x="14" y="28" width="3" height="24" rx="1"/>
+      <rect x="22" y="28" width="3" height="24" rx="1"/>
+      <rect x="10" y="34" width="19" height="3" rx="1"/>
+      <rect x="10" y="44" width="19" height="3" rx="1"/>
+    </g>
+    <path d="M 34 26 L 40 26 L 47 42 L 54 26 L 60 26 L 60 58 L 55 58 L 55 36 L 49 50 L 46 50 L 40 36 L 40 58 L 34 58 Z"/>
+  </g>
 </svg>
