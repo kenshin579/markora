@@ -1,8 +1,31 @@
 <idea-plugin>
     <id>com.github.kenshin579.markora</id>
     <name>Markora</name>
-    <vendor>kenshin579</vendor>
-    <description>Typora-like WYSIWYG Markdown editor for JetBrains IDEs</description>
+    <vendor url="https://markora.advenoh.pe.kr">kenshin579</vendor>
+    <description><![CDATA[
+        <p><b>Markora</b> brings Notion-style WYSIWYG Markdown editing to JetBrains IDEs.
+        Edit Markdown files in a block editor that renders as you type — no preview pane needed.</p>
+
+        <p><b>Features</b></p>
+        <ul>
+          <li>BlockNote-based block editor with slash commands</li>
+          <li>LaTeX math (KaTeX) and Mermaid diagrams render inline</li>
+          <li>Debounced auto-save to standard CommonMark + GFM Markdown</li>
+          <li>Image drag/drop and clipboard paste auto-organized into <code>images/</code></li>
+          <li>Light/Dark theme synced with the IDE</li>
+          <li>External links open in your system browser — won't break IDE flow</li>
+        </ul>
+
+        <p><b>Compatibility</b></p>
+        <p>Works on IntelliJ IDEA, WebStorm, PyCharm, GoLand, RubyMine, PhpStorm, Rider, CLion
+        2024.2 or newer (with JCEF enabled, which is the default).</p>
+
+        <p><b>Links</b></p>
+        <ul>
+          <li><a href="https://markora.advenoh.pe.kr">Website</a></li>
+          <li><a href="https://github.com/kenshin579/markora">GitHub</a></li>
+        </ul>
+    ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
