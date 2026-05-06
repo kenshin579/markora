@@ -36,9 +36,9 @@ For the full list of standard blocks, see [BlockNote documentation](https://www.
 
 ## Installation
 
-### From JetBrains Marketplace (Coming Soon)
+### From JetBrains Marketplace
 
-1. Open **Settings** > **Plugins** > **Marketplace**
+1. Open **Settings** > **Plugins** > **Marketplace** (or visit the [Marketplace listing](https://plugins.jetbrains.com/plugin/31598-markora) directly)
 2. Search for **Markora**
 3. Click **Install** and restart your IDE
 
