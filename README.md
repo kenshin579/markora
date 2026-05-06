@@ -44,7 +44,7 @@ For the full list of standard blocks, see [BlockNote documentation](https://www.
 
 ### Manual Installation
 
-1. Download the latest release from [GitHub Releases](https://github.com/kenshin579/intellij-plugin-markdown-editor/releases)
+1. Download the latest release from [GitHub Releases](https://github.com/kenshin579/markora/releases)
 2. Open **Settings** > **Plugins** > **Gear icon** > **Install Plugin from Disk...**
 3. Select the downloaded `.zip` file and restart your IDE
 
@@ -67,8 +67,8 @@ Configure the plugin at **Settings** > **Tools** > **Markora**:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kenshin579/intellij-plugin-markdown-editor.git
-cd intellij-plugin-markdown-editor
+git clone https://github.com/kenshin579/markora.git
+cd markora
 
 # First build downloads Node 20.18.0 to .gradle/nodejs/ (managed by gradle-node-plugin).
 # No system Node required.
