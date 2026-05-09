@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CodeBlockCopy, CODE_BLOCK_SELECTOR } from '../CodeBlockCopy';
@@ -30,6 +30,12 @@ describe('CodeBlockCopy', () => {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
     });
+  });
+
+  afterEach(() => {
+    // Prevent fake-timer leakage between tests; the "Copied" test uses vi.useFakeTimers()
+    // and must not leave them active for subsequent tests.
+    vi.useRealTimers();
   });
 
   it('CODE_BLOCK_SELECTOR 상수가 노출된다', () => {
@@ -85,15 +91,32 @@ describe('CodeBlockCopy', () => {
     vi.useRealTimers();
   });
 
+  it('클립보드에 버튼 라벨("Copy"/"Copied") 텍스트가 포함되지 않는다', async () => {
+    // This test would FAIL if the implementation reverted to `hoveredPre.innerText`
+    // because the portal button is rendered inside <pre>, so innerText would include
+    // the "Copy" label. The component must read from <code> only.
+    render(<Harness pres={[{ lang: 'js', text: 'const y = 2;' }]} />);
+    const pre = document.querySelector('pre')!;
+    fireEvent.mouseEnter(pre);
+    const button = await screen.findByRole('button', { name: /copy/i });
+    fireEvent.click(button);
+    await waitFor(() => {
+      const writtenText = (navigator.clipboard.writeText as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+      expect(writtenText).toBe('const y = 2;');
+      expect(writtenText).not.toMatch(/copy/i);
+      expect(writtenText).not.toMatch(/copied/i);
+    });
+  });
+
   it('동적으로 추가된 pre도 인식한다 (MutationObserver)', async () => {
     const { rerender } = render(<Harness pres={[]} />);
-    // Wrap rerender in act so React flushes DOM mutations and happy-dom's
-    // MutationObserver callback gets a chance to fire before we assert.
+    // Rerender inside act so React flushes its own state.
     await act(async () => {
       rerender(<Harness pres={[{ lang: 'py', text: 'print(1)' }]} />);
-      // happy-dom fires MutationObserver asynchronously (after microtask queue),
-      // so flush with a couple of promise resolutions.
-      await Promise.resolve();
+    });
+    // happy-dom fires MutationObserver callbacks after the microtask queue,
+    // so a second act() call lets them run before we fire mouseEnter.
+    await act(async () => {
       await Promise.resolve();
     });
     const pre = document.querySelector('pre')!;

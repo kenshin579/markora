@@ -12,6 +12,13 @@ export function CodeBlockCopy({ editorRoot }: Props) {
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<number | null>(null);
 
+  // Fix #1: clear the copy-state timer on unmount to avoid setState after unmount
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const root = editorRoot.current;
     if (!root) return;
@@ -81,7 +88,11 @@ export function CodeBlockCopy({ editorRoot }: Props) {
       type="button"
       className="markora-code-copy is-visible"
       onMouseEnter={() => setHoveredPre(hoveredPre)}
-      onMouseLeave={() => setHoveredPre(null)}
+      onMouseLeave={(e) => {
+        // Fix #2: only clear hover when the pointer actually left the pre (not just
+        // transited from button back into the pre interior), to prevent flicker.
+        if (!hoveredPre.contains(e.relatedTarget as Node)) setHoveredPre(null);
+      }}
       onClick={handleCopy}
     >
       {copied ? 'Copied' : 'Copy'}
