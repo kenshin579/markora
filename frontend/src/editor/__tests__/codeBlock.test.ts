@@ -64,7 +64,8 @@ describe('codeBlockOptions.createHighlighter', () => {
   });
 
   it('shiki를 dynamic import하고 듀얼 테마/23개 lang으로 createHighlighter 호출', async () => {
-    const fakeHighlighter = { __fake: true };
+    const fakeCodeToTokens = vi.fn().mockReturnValue({ tokens: [] });
+    const fakeHighlighter = { codeToTokens: fakeCodeToTokens };
     const createHighlighterMock = vi.fn().mockResolvedValue(fakeHighlighter);
     vi.doMock('shiki', () => ({ createHighlighter: createHighlighterMock }));
 
@@ -73,10 +74,30 @@ describe('codeBlockOptions.createHighlighter', () => {
 
     expect(createHighlighterMock).toHaveBeenCalledTimes(1);
     const callArg = createHighlighterMock.mock.calls[0][0];
-    expect(callArg.themes).toEqual(['github-light', 'github-dark']);
+    expect(callArg.themes).toEqual(['github-light', 'one-dark-pro']);
     expect(callArg.langs).toHaveLength(23);
     expect(callArg.langs).toContain('javascript');
     expect(callArg.langs).toContain('kotlin');
     expect(result).toBe(fakeHighlighter);
+  });
+
+  it('codeToTokens 호출 시 themes: { light, dark }을 자동 주입한다', async () => {
+    const originalCodeToTokens = vi.fn().mockReturnValue({ tokens: [] });
+    const fakeHighlighter = { codeToTokens: originalCodeToTokens };
+    const createHighlighterMock = vi.fn().mockResolvedValue(fakeHighlighter);
+    vi.doMock('shiki', () => ({ createHighlighter: createHighlighterMock }));
+
+    const { codeBlockOptions: fresh } = await import('../codeBlock');
+    const highlighter = await fresh.createHighlighter!();
+
+    // BlockNote's prosemirror-highlight integration calls codeToTokens with only `lang` and `theme`.
+    (highlighter as any).codeToTokens('let x = 1;', { lang: 'javascript', theme: 'github-light' });
+
+    expect(originalCodeToTokens).toHaveBeenCalledTimes(1);
+    const passedOptions = originalCodeToTokens.mock.calls[0][1];
+    expect(passedOptions.themes).toEqual({ light: 'github-light', dark: 'one-dark-pro' });
+    // Original options preserved
+    expect(passedOptions.lang).toBe('javascript');
+    expect(passedOptions.theme).toBe('github-light');
   });
 });

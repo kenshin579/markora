@@ -26,6 +26,9 @@ export const SUPPORTED_LANGUAGES = {
   properties:  { name: 'Properties', aliases: [] as string[] },
 } as const;
 
+const SHIKI_LIGHT_THEME = 'github-light';
+const SHIKI_DARK_THEME = 'one-dark-pro';
+
 export const codeBlockOptions: CodeBlockOptions = {
   defaultLanguage: 'text',
   indentLineWithTab: true,
@@ -33,12 +36,23 @@ export const codeBlockOptions: CodeBlockOptions = {
   supportedLanguages: SUPPORTED_LANGUAGES as unknown as CodeBlockOptions['supportedLanguages'],
   createHighlighter: async () => {
     const { createHighlighter } = await import('shiki');
+    const highlighter = await createHighlighter({
+      themes: [SHIKI_LIGHT_THEME, SHIKI_DARK_THEME],
+      langs: Object.keys(SUPPORTED_LANGUAGES),
+    });
+    // BlockNote's lazyShikiPlugin → prosemirror-highlight calls codeToTokens with only
+    // a single `theme` option (the first loaded theme), which would render light-mode
+    // colors in both modes. Inject `themes: { light, dark }` so shiki emits dual-theme
+    // CSS variables (--shiki-light / --shiki-dark) per token, enabling our CSS toggle.
+    const originalCodeToTokens = highlighter.codeToTokens.bind(highlighter);
+    highlighter.codeToTokens = ((code: string, options: Record<string, unknown> | undefined) =>
+      originalCodeToTokens(code, {
+        ...(options ?? {}),
+        themes: { light: SHIKI_LIGHT_THEME, dark: SHIKI_DARK_THEME },
+      })) as unknown as typeof highlighter.codeToTokens;
     // shiki returns HighlighterGeneric<BundledLanguage, BundledTheme>; BlockNote expects
     // HighlighterGeneric<any, any>. Structurally compatible at runtime, incompatible at type level.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return createHighlighter({
-      themes: ['github-light', 'github-dark'],
-      langs: Object.keys(SUPPORTED_LANGUAGES),
-    }) as any;
+    return highlighter as any;
   },
 };
