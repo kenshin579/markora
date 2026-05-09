@@ -6,6 +6,7 @@ import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
 import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
+import { CodeBlockCopy } from '../blocks/CodeBlockCopy';
 
 interface Props {
   bridge: MarkoraBridge;
@@ -29,6 +30,7 @@ export function Editor({ bridge }: Props) {
   const lastKnownContentRef = useRef<string>('');
   const saveTimerRef = useRef<number | null>(null);
   const loadedRef = useRef(false);   // 초기 load 완료 여부 (load-induced onChange를 user edit과 구분)
+  const shellRef = useRef<HTMLDivElement>(null);
 
   // 초기 로드
   useEffect(() => {
@@ -140,7 +142,7 @@ export function Editor({ bridge }: Props) {
   }, [bridge]);
 
   return (
-    <div className="markora-shell">
+    <div className="markora-shell" ref={shellRef}>
       <BlockNoteView editor={editor} theme={theme} slashMenu={false}>
         <SuggestionMenuController
           triggerCharacter="/"
@@ -185,6 +187,7 @@ export function Editor({ bridge }: Props) {
           }}
         />
       </BlockNoteView>
+      <CodeBlockCopy editorRoot={shellRef} />
       <div className="markora-status" data-status={status}>{status}</div>
     </div>
   );
