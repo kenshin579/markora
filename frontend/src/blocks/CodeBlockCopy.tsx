@@ -1,0 +1,91 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+export const CODE_BLOCK_SELECTOR = 'pre[data-content-type="codeBlock"]';
+
+interface Props {
+  editorRoot: React.RefObject<HTMLElement | null>;
+}
+
+export function CodeBlockCopy({ editorRoot }: Props) {
+  const [hoveredPre, setHoveredPre] = useState<HTMLPreElement | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const root = editorRoot.current;
+    if (!root) return;
+
+    const handleMouseEnter = (e: Event) => {
+      const target = e.currentTarget as HTMLPreElement;
+      setHoveredPre(target);
+    };
+    const handleMouseLeave = (e: Event) => {
+      const target = e.currentTarget as HTMLPreElement;
+      setHoveredPre((curr) => (curr === target ? null : curr));
+    };
+
+    const attach = (pre: HTMLPreElement) => {
+      pre.addEventListener('mouseenter', handleMouseEnter);
+      pre.addEventListener('mouseleave', handleMouseLeave);
+    };
+    const detach = (pre: HTMLPreElement) => {
+      pre.removeEventListener('mouseenter', handleMouseEnter);
+      pre.removeEventListener('mouseleave', handleMouseLeave);
+    };
+
+    root.querySelectorAll<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(attach);
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((n) => {
+          if (!(n instanceof HTMLElement)) return;
+          if (n.matches?.(CODE_BLOCK_SELECTOR)) attach(n as HTMLPreElement);
+          n.querySelectorAll?.<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(attach);
+        });
+        m.removedNodes.forEach((n) => {
+          if (!(n instanceof HTMLElement)) return;
+          if (n.matches?.(CODE_BLOCK_SELECTOR)) detach(n as HTMLPreElement);
+          n.querySelectorAll?.<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(detach);
+        });
+      }
+    });
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      root.querySelectorAll<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(detach);
+    };
+  }, [editorRoot]);
+
+  const handleCopy = async () => {
+    if (!hoveredPre) return;
+    // Extract only the code content, excluding any injected button text.
+    // The portal renders the button inside the <pre>, so we read from <code> only.
+    const codeEl = hoveredPre.querySelector('code');
+    const text = (codeEl ?? hoveredPre).innerText;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = window.setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      console.error('Code copy failed:', e);
+    }
+  };
+
+  if (!hoveredPre) return null;
+
+  return createPortal(
+    <button
+      type="button"
+      className="markora-code-copy is-visible"
+      onMouseEnter={() => setHoveredPre(hoveredPre)}
+      onMouseLeave={() => setHoveredPre(null)}
+      onClick={handleCopy}
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </button>,
+    hoveredPre,
+  );
+}
