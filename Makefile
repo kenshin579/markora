@@ -83,3 +83,9 @@ tag: check-version check-main check-clean check-tag-unique bump-version
 	@git tag "v$(VERSION)"
 	@git push origin "v$(VERSION)"
 	@echo "Pushed tag v$(VERSION) to origin"
+
+release: check-version check-main check-clean check-tag-unique check-gh tag
+	@gh release create "v$(VERSION)" \
+		--title "v$(VERSION)" \
+		--generate-notes
+	@echo "Created GitHub release v$(VERSION) (workflow will attach the plugin zip)"
