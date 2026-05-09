@@ -1,3 +1,6 @@
+import { getLanguageId } from '@blocknote/core';
+import { codeBlockOptions } from '../editor/codeBlock';
+
 type AnyBlock = {
   type: string;
   props?: Record<string, any>;
@@ -50,6 +53,15 @@ export function postParse(blocks: AnyBlock[]): AnyBlock[] {
     }
     if (b.type === 'codeBlock' && b.props?.language === 'mermaid') {
       return { type: 'mermaid', props: { source: codeContent(b) } };
+    }
+    // Normalize codeBlock language aliases (e.g. 'bash' → 'shellscript', 'kt' → 'kotlin')
+    // so BlockNote's language picker can show the correct label. Unknown languages are
+    // left as-is to preserve round-trip serialization.
+    if (b.type === 'codeBlock' && typeof b.props?.language === 'string' && b.props.language.length > 0) {
+      const canonical = getLanguageId(codeBlockOptions, b.props.language);
+      if (canonical && canonical !== b.props.language) {
+        return { ...b, props: { ...b.props, language: canonical } };
+      }
     }
     // Fix 4 + Fix 5: gate by block type; Fix 5: only add children key when present
     if (Array.isArray(b.content) && INLINE_MATH_BLOCK_TYPES.has(b.type)) {

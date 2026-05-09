@@ -214,3 +214,64 @@ describe('regressions: 다양한 언어 코드블록 보존', () => {
     expect(preSerialize(blocks as any)).toEqual(blocks);
   });
 });
+
+describe('postParse: codeBlock language alias normalization', () => {
+  const aliasCases: Array<[string, string]> = [
+    ['bash', 'shellscript'],
+    ['sh', 'shellscript'],
+    ['zsh', 'shellscript'],
+    ['kt', 'kotlin'],
+    ['kts', 'kotlin'],
+    ['js', 'javascript'],
+    ['ts', 'typescript'],
+    ['py', 'python'],
+    ['rs', 'rust'],
+    ['golang', 'go'],
+    ['c++', 'cpp'],
+    ['yml', 'yaml'],
+    ['sass', 'scss'],
+    ['md', 'markdown'],
+    ['docker', 'dockerfile'],
+    ['plain', 'text'],
+    ['plaintext', 'text'],
+  ];
+
+  for (const [alias, canonical] of aliasCases) {
+    it(`${alias} → ${canonical}`, () => {
+      const blocks = [{
+        type: 'codeBlock',
+        props: { language: alias },
+        content: [{ type: 'text', text: 'x', styles: {} }],
+      }];
+      const out = postParse(blocks as any);
+      expect((out[0] as any).props.language).toBe(canonical);
+    });
+  }
+
+  it('canonical id는 변경하지 않음', () => {
+    const blocks = [{
+      type: 'codeBlock',
+      props: { language: 'shellscript' },
+      content: [{ type: 'text', text: 'echo hi', styles: {} }],
+    }];
+    expect(postParse(blocks as any)).toEqual(blocks);
+  });
+
+  it('미지원 언어는 변경하지 않음 (round-trip 보존)', () => {
+    const blocks = [{
+      type: 'codeBlock',
+      props: { language: 'elixir' },
+      content: [{ type: 'text', text: 'IO.puts "hi"', styles: {} }],
+    }];
+    expect(postParse(blocks as any)).toEqual(blocks);
+  });
+
+  it('빈 language 문자열은 변경하지 않음', () => {
+    const blocks = [{
+      type: 'codeBlock',
+      props: { language: '' },
+      content: [{ type: 'text', text: 'plain', styles: {} }],
+    }];
+    expect(postParse(blocks as any)).toEqual(blocks);
+  });
+});
