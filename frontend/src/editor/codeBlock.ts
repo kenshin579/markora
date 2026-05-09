@@ -42,13 +42,19 @@ export const codeBlockOptions: CodeBlockOptions = {
     });
     // BlockNote's lazyShikiPlugin → prosemirror-highlight calls codeToTokens with only
     // a single `theme` option (the first loaded theme), which would render light-mode
-    // colors in both modes. Inject `themes: { light, dark }` so shiki emits dual-theme
-    // CSS variables (--shiki-light / --shiki-dark) per token, enabling our CSS toggle.
+    // colors in both modes. Inject `themes: { light, dark }` + `defaultColor: false` so
+    // shiki emits ONLY CSS variables (--shiki-light / --shiki-dark), enabling our CSS
+    // theme toggle. Without `defaultColor: false`, shiki's default ('light') emits a
+    // direct `color`/`background-color` that overrides the dark variable in dark mode.
     const originalCodeToTokens = highlighter.codeToTokens.bind(highlighter);
     highlighter.codeToTokens = ((code: string, options: Record<string, unknown> | undefined) =>
       originalCodeToTokens(code, {
         ...(options ?? {}),
         themes: { light: SHIKI_LIGHT_THEME, dark: SHIKI_DARK_THEME },
+        // defaultColor: false → shiki emits only CSS variables (no inline color/bg).
+        // Without this, default 'light' produces direct color/bg that would override
+        // our --shiki-dark variable in dark mode and create per-token bg banding.
+        defaultColor: false,
       })) as unknown as typeof highlighter.codeToTokens;
     // shiki returns HighlighterGeneric<BundledLanguage, BundledTheme>; BlockNote expects
     // HighlighterGeneric<any, any>. Structurally compatible at runtime, incompatible at type level.

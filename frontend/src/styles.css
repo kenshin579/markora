@@ -55,11 +55,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .markora-shell pre code .line { display: block; }
 .markora-shell pre code [style*="--shiki-light"] {
   color: var(--shiki-light);
-  background-color: var(--shiki-light-bg, transparent);
 }
 [data-mantine-color-scheme="dark"] .markora-shell pre code [style*="--shiki-dark"] {
   color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg, transparent);
 }
 
 /* ----- Code copy button overlay ----- */

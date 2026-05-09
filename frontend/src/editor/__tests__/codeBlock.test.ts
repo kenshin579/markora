@@ -81,7 +81,7 @@ describe('codeBlockOptions.createHighlighter', () => {
     expect(result).toBe(fakeHighlighter);
   });
 
-  it('codeToTokens 호출 시 themes: { light, dark }을 자동 주입한다', async () => {
+  it('codeToTokens 호출 시 themes: { light, dark }과 defaultColor: false를 자동 주입한다', async () => {
     const originalCodeToTokens = vi.fn().mockReturnValue({ tokens: [] });
     const fakeHighlighter = { codeToTokens: originalCodeToTokens };
     const createHighlighterMock = vi.fn().mockResolvedValue(fakeHighlighter);
@@ -96,6 +96,7 @@ describe('codeBlockOptions.createHighlighter', () => {
     expect(originalCodeToTokens).toHaveBeenCalledTimes(1);
     const passedOptions = originalCodeToTokens.mock.calls[0][1];
     expect(passedOptions.themes).toEqual({ light: 'github-light', dark: 'one-dark-pro' });
+    expect(passedOptions.defaultColor).toBe(false);
     // Original options preserved
     expect(passedOptions.lang).toBe('javascript');
     expect(passedOptions.theme).toBe('github-light');
