@@ -29,6 +29,10 @@ Markora - Typora-like WYSIWYG Markdown editor plugin for JetBrains IDEs. The pro
 ./gradlew buildPlugin
 ```
 
+## Release Process
+
+Versioned via `gradle.properties` `pluginVersion`. Use `make release VERSION=x.y.z` (or `make tag` / `make bump-version` for partial steps). See README.md "Release" section for details.
+
 ## Architecture
 
 This is an IntelliJ Platform plugin project following the standard structure:
