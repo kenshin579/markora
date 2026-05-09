@@ -85,7 +85,10 @@ tag: check-version check-main check-clean check-tag-unique bump-version
 	@echo "Pushed tag v$(VERSION) to origin"
 
 release: check-version check-main check-clean check-tag-unique check-gh tag
-	@gh release create "v$(VERSION)" \
-		--title "v$(VERSION)" \
-		--generate-notes
-	@echo "Created GitHub release v$(VERSION) (workflow will attach the plugin zip)"
+	@if gh release view "v$(VERSION)" >/dev/null 2>&1; then \
+		echo "Release v$(VERSION) already exists (likely created by release.yml). Skipping gh release create."; \
+	else \
+		gh release create "v$(VERSION)" --title "v$(VERSION)" --generate-notes; \
+		echo "Created GitHub release v$(VERSION)"; \
+	fi
+	@echo "GitHub release v$(VERSION) is ready (workflow will attach the plugin zip)"
