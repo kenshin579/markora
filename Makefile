@@ -55,3 +55,26 @@ check-gh:
 	@gh auth status >/dev/null 2>&1 || { \
 		echo "ERROR: gh CLI is not authenticated (run 'gh auth login')"; exit 1; \
 	}
+
+bump-version: check-version check-main check-clean
+	@current=$$(grep '^pluginVersion = ' gradle.properties | sed 's/^pluginVersion = //'); \
+	if [ "$$current" = "$(VERSION)" ]; then \
+		echo "ERROR: pluginVersion is already $(VERSION) in gradle.properties"; exit 1; \
+	fi
+	@git fetch origin main --quiet
+	@local_main=$$(git rev-parse main); \
+	remote_main=$$(git rev-parse origin/main); \
+	if [ "$$local_main" != "$$remote_main" ]; then \
+		echo "ERROR: local main is not in sync with origin/main (run: git pull --ff-only)"; exit 1; \
+	fi
+	@# Portable in-place sed (works on both GNU and BSD sed via -i.bak)
+	@sed -i.bak -E 's/^pluginVersion = .*/pluginVersion = $(VERSION)/' gradle.properties
+	@rm -f gradle.properties.bak
+	@grep -q '^pluginVersion = $(VERSION)$$' gradle.properties || { \
+		echo "ERROR: gradle.properties update failed"; exit 1; \
+	}
+	@echo "Updated gradle.properties: pluginVersion = $(VERSION)"
+	@git add gradle.properties
+	@git commit -m "chore: bump version to $(VERSION)"
+	@git push origin main
+	@echo "Pushed bump commit to origin/main"
