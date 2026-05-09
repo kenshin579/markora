@@ -29,9 +29,12 @@ export const SUPPORTED_LANGUAGES = {
 export const codeBlockOptions: CodeBlockOptions = {
   defaultLanguage: 'text',
   indentLineWithTab: true,
+  // `as const` produces readonly aliases arrays; CodeBlockOptions expects mutable string[].
   supportedLanguages: SUPPORTED_LANGUAGES as unknown as CodeBlockOptions['supportedLanguages'],
   createHighlighter: async () => {
     const { createHighlighter } = await import('shiki');
+    // shiki returns HighlighterGeneric<BundledLanguage, BundledTheme>; BlockNote expects
+    // HighlighterGeneric<any, any>. Structurally compatible at runtime, incompatible at type level.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return createHighlighter({
       themes: ['github-light', 'github-dark'],
