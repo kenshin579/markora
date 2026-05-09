@@ -78,3 +78,8 @@ bump-version: check-version check-main check-clean
 	@git commit -m "chore: bump version to $(VERSION)"
 	@git push origin main
 	@echo "Pushed bump commit to origin/main"
+
+tag: check-version check-main check-clean check-tag-unique bump-version
+	@git tag "v$(VERSION)"
+	@git push origin "v$(VERSION)"
+	@echo "Pushed tag v$(VERSION) to origin"
