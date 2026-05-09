@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export const CODE_BLOCK_SELECTOR = 'pre[data-content-type="codeBlock"]';
+export const CODE_BLOCK_SELECTOR = '[data-content-type="codeBlock"] pre';
 
 interface Props {
   editorRoot: React.RefObject<HTMLElement | null>;
@@ -43,17 +43,33 @@ export function CodeBlockCopy({ editorRoot }: Props) {
 
     root.querySelectorAll<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(attach);
 
+    const attachFromNode = (n: HTMLElement) => {
+      // Case 1: n is a <pre> that sits inside a data-content-type="codeBlock" wrapper
+      if (n.matches?.(CODE_BLOCK_SELECTOR)) attach(n as HTMLPreElement);
+      // Case 2: n is (or contains) a codeBlock wrapper div — find descendant <pre>s
+      n.querySelectorAll?.<HTMLPreElement>('[data-content-type="codeBlock"] pre').forEach(attach);
+      // Case 3: n itself is the wrapper div
+      if (n.dataset?.contentType === 'codeBlock') {
+        n.querySelectorAll<HTMLPreElement>('pre').forEach(attach);
+      }
+    };
+    const detachFromNode = (n: HTMLElement) => {
+      if (n.matches?.(CODE_BLOCK_SELECTOR)) detach(n as HTMLPreElement);
+      n.querySelectorAll?.<HTMLPreElement>('[data-content-type="codeBlock"] pre').forEach(detach);
+      if (n.dataset?.contentType === 'codeBlock') {
+        n.querySelectorAll<HTMLPreElement>('pre').forEach(detach);
+      }
+    };
+
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
         m.addedNodes.forEach((n) => {
           if (!(n instanceof HTMLElement)) return;
-          if (n.matches?.(CODE_BLOCK_SELECTOR)) attach(n as HTMLPreElement);
-          n.querySelectorAll?.<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(attach);
+          attachFromNode(n);
         });
         m.removedNodes.forEach((n) => {
           if (!(n instanceof HTMLElement)) return;
-          if (n.matches?.(CODE_BLOCK_SELECTOR)) detach(n as HTMLPreElement);
-          n.querySelectorAll?.<HTMLPreElement>(CODE_BLOCK_SELECTOR).forEach(detach);
+          detachFromNode(n);
         });
       }
     });

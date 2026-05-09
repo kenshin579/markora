@@ -10,13 +10,15 @@ function Harness({ pres = [] as Array<{ lang: string; text: string }> }) {
     <div>
       <div ref={ref} className="markora-shell">
         {pres.map((p, i) => (
-          <pre key={i} data-content-type="codeBlock">
-            <code>
-              <span className="line">
-                <span>{p.text}</span>
-              </span>
-            </code>
-          </pre>
+          <div key={i} className="bn-block-content" data-content-type="codeBlock">
+            <pre>
+              <code>
+                <span className="line">
+                  <span>{p.text}</span>
+                </span>
+              </code>
+            </pre>
+          </div>
         ))}
       </div>
       <CodeBlockCopy editorRoot={ref} />
@@ -39,7 +41,7 @@ describe('CodeBlockCopy', () => {
   });
 
   it('CODE_BLOCK_SELECTOR 상수가 노출된다', () => {
-    expect(CODE_BLOCK_SELECTOR).toBe('pre[data-content-type="codeBlock"]');
+    expect(CODE_BLOCK_SELECTOR).toBe('[data-content-type="codeBlock"] pre');
   });
 
   it('초기 렌더 시 pre가 없으면 버튼도 없다', () => {
