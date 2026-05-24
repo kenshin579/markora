@@ -5,6 +5,7 @@ import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
 import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
+import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 
 interface Props {
@@ -65,6 +66,15 @@ export function Editor({ bridge }: Props) {
         try {
           setStatus('Saving...');
           const md = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);
+          // 손실 가드: 직렬화 결과가 마지막 정상 내용 대비 frontmatter/대량 내용을
+          // 잃었다면 파일을 덮어쓰지 않고 경고만 표시한다 (데이터 파괴 방지).
+          const guard = checkSaveSafety(lastKnownContentRef.current, md);
+          if (!guard.safe) {
+            console.warn('save blocked by guard:', guard.reason, { md });
+            isDirtyRef.current = true; // 미저장 상태 유지
+            setStatus(`⚠ Save blocked: ${guard.reason}`);
+            return;
+          }
           await bridge.saveFile(md);
           lastKnownContentRef.current = md;
           isDirtyRef.current = false;

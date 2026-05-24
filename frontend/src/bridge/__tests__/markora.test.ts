@@ -55,6 +55,36 @@ describe('createBridge (real fetch)', () => {
     expect(JSON.parse(call[1].body)).toEqual({ path: '/tmp/x.md', content: '# updated' });
   });
 
+  it('frontmatter를 본문에서 떼어 반환하고 저장 시 다시 붙인다', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: '---\ntitle: Post\n---\n\n# Body\n' }),
+    });
+    const b = createBridge(ctx);
+    const body = await b.loadFile();
+    expect(body).toBe('\n# Body\n'); // frontmatter 제거됨
+    await b.saveFile('\n# Body edited\n');
+    const saveCall = (globalThis.fetch as any).mock.calls.find(
+      (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
+    );
+    expect(JSON.parse(saveCall[1].body).content).toBe('---\ntitle: Post\n---\n\n# Body edited\n');
+  });
+
+  it('로드한 상대경로 이미지는 저장 시 절대 URL이 아닌 원본 상대경로로 기록된다', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: '![alt](images/foo.png)\n' }),
+    });
+    const b = createBridge(ctx);
+    await b.loadFile();
+    // BlockNote가 직렬화 시 base(jsdom: http://localhost:3000/) 기준 절대 URL을 뱉은 상황
+    await b.saveFile('![alt](http://localhost:3000/images/foo.png)\n');
+    const saveCall = (globalThis.fetch as any).mock.calls.find(
+      (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
+    );
+    expect(JSON.parse(saveCall[1].body).content).toBe('![alt](images/foo.png)\n');
+  });
+
   it('uploadImage POSTs multipart', async () => {
     (globalThis.fetch as any).mockResolvedValue({
       ok: true,
