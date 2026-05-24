@@ -85,6 +85,42 @@ describe('createBridge (real fetch)', () => {
     expect(JSON.parse(saveCall[1].body).content).toBe('![alt](images/foo.png)\n');
   });
 
+  it('peekFile은 read 엔드포인트에서 본문(frontmatter 제거)을 반환한다', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: '---\ntitle: Post\n---\n\n# Body\n' }),
+    });
+    const b = createBridge(ctx);
+    const body = await b.peekFile();
+    expect(body).toBe('\n# Body\n');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'http://localhost:9000/api/file/read?path=%2Ftmp%2Fx.md'
+    );
+  });
+
+  it('peekFile은 storedFrontmatter/imageMap을 변경하지 않는다 (부작용 없음)', async () => {
+    const b = createBridge(ctx);
+    // 1) 최초 load: frontmatter F1 보관
+    (globalThis.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ content: '---\ntitle: F1\n---\n\n# Body\n' }),
+    });
+    await b.loadFile();
+    // 2) peekFile: 디스크가 다른 frontmatter F2로 바뀐 상태를 들여다봄
+    (globalThis.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ content: '---\ntitle: F2\n---\n\n# Body changed externally\n' }),
+    });
+    await b.peekFile();
+    // 3) save: peek이 storedFrontmatter를 오염시켰다면 F2가 붙는다. F1이어야 정상.
+    (globalThis.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    await b.saveFile('\n# Body\n');
+    const saveCall = (globalThis.fetch as any).mock.calls.find(
+      (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
+    );
+    expect(JSON.parse(saveCall[1].body).content).toBe('---\ntitle: F1\n---\n\n# Body\n');
+  });
+
   it('uploadImage POSTs multipart', async () => {
     (globalThis.fetch as any).mockResolvedValue({
       ok: true,
@@ -128,6 +164,24 @@ describe('uploadImage edge cases', () => {
     // Path should not contain undefined and should use forward slashes
     expect(result.url).not.toContain('undefined');
     expect(result.url).toContain('C%3A%2FUsers%2Ffoo%2Fimages%2Fa.png');
+  });
+});
+
+describe('onReloadRequest', () => {
+  it('window.markora.reloadFromDisk() 호출 시 등록된 콜백이 실행된다', () => {
+    const b = createBridge({
+      filePath: '/tmp/x.md',
+      serverUrl: 'http://localhost:9000/',
+      initialTheme: 'light',
+    });
+    const cb = vi.fn();
+    const unsub = b.onReloadRequest(cb);
+    window.markora.reloadFromDisk();
+    expect(cb).toHaveBeenCalled();
+    cb.mockClear();
+    unsub();
+    window.markora.reloadFromDisk();
+    expect(cb).not.toHaveBeenCalled();
   });
 });
 

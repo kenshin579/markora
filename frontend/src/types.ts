@@ -13,15 +13,21 @@ export interface UploadResult {
 export interface MarkoraBridge {
   getContext(): BridgeContext;
   loadFile(): Promise<string>;
+  // 디스크 현재 본문을 부작용 없이 읽어온다 (저장 직전 외부 편집 충돌 검출용).
+  peekFile(): Promise<string>;
   saveFile(markdown: string): Promise<void>;
   uploadImage(file: File): Promise<UploadResult>;
   onThemeChange(cb: (t: Theme) => void): () => void;
+  // Kotlin이 외부 파일 변경(IDE 활성화/VFS 변경)을 감지해 reload를 요청할 때 호출되는 콜백 등록.
+  onReloadRequest(cb: () => void): () => void;
 }
 
 declare global {
   interface Window {
     markora: {
       applyTheme: (t: Theme) => void;
+      // Kotlin이 IDE 활성화/외부 변경 감지 시 호출하여 외부 디스크 변경 reload를 요청.
+      reloadFromDisk: () => void;
     };
   }
 }

@@ -3,10 +3,13 @@ package com.github.kenshin579.markora.editor
 import com.github.kenshin579.markora.controller.PreviewStaticServer
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationActivationListener
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
@@ -31,6 +34,26 @@ class MarkdownHtmlPanel(
     init {
         setupHandlers()
         loadEditor()
+        subscribeExternalChangeReload()
+    }
+
+    // IDE가 다시 활성화될 때(터미널/다른 앱에서 돌아옴) 디스크 상태가 외부에서 변경됐을 수
+    // 있다. JCEF 임베드 브라우저는 JS 'focus' 이벤트를 안정적으로 받지 못하므로 IDE 측에서
+    // 명시적으로 트리거한다.
+    //   1) virtualFile.refresh(async)로 VFS↔Document 동기화
+    //   2) 동기화 완료 후 JS의 window.markora.reloadFromDisk 호출
+    private fun subscribeExternalChangeReload() {
+        val connection = ApplicationManager.getApplication().messageBus.connect(this)
+        connection.subscribe(ApplicationActivationListener.TOPIC, object : ApplicationActivationListener {
+            override fun applicationActivated(ideFrame: IdeFrame) {
+                file.refresh(/* async = */ true, /* recursive = */ false) {
+                    // postRunnable은 VFS refresh 완료 후 실행됨. Document가 최신화된 시점에 JS reload 요청.
+                    executeJavaScript(
+                        "try { if (window.markora && typeof window.markora.reloadFromDisk === 'function') { window.markora.reloadFromDisk(); } } catch (e) { console.warn('reloadFromDisk failed', e); }"
+                    )
+                }
+            }
+        })
     }
 
     private fun setupHandlers() {
