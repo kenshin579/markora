@@ -1,11 +1,11 @@
 package com.github.kenshin579.markora.controller
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
@@ -47,9 +47,11 @@ object MarkdownFileController {
             return true
         }
 
-        val content = ReadAction.compute<String, Throwable> {
-            FileDocumentManager.getInstance().getDocument(virtualFile)?.text ?: ""
-        }
+        val content = ApplicationManager.getApplication().runReadAction(
+            Computable {
+                FileDocumentManager.getInstance().getDocument(virtualFile)?.text ?: ""
+            }
+        )
 
         val escapedContent = content
             .replace("\\", "\\\\")
