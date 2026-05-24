@@ -30,6 +30,8 @@ export function Editor({ bridge }: Props) {
   const lastKnownContentRef = useRef<string>('');
   const saveTimerRef = useRef<number | null>(null);
   const loadedRef = useRef(false);   // 초기 load 완료 여부 (load-induced onChange를 user edit과 구분)
+  // 외부 변경 reload가 트리거하는 onChange를 user edit과 구분 (reload된 내용을 즉시 lossy 저장으로 되덮는 것 방지)
+  const applyingRemoteRef = useRef(false);
 
   // 초기 로드
   useEffect(() => {
@@ -59,6 +61,9 @@ export function Editor({ bridge }: Props) {
     return editor.onChange(() => {
       // 초기 load가 트리거한 onChange는 무시 (user edit만 dirty 처리)
       if (!loadedRef.current) return;
+      // 외부 변경 reload(replaceBlocks)가 트리거한 onChange도 user edit이 아니므로 무시.
+      // (이게 없으면 reload 직후 1초 뒤 lossy 직렬화로 방금 불러온 외부 내용을 되덮어쓴다)
+      if (applyingRemoteRef.current) return;
       isDirtyRef.current = true;
       setStatus('Modified');
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
@@ -66,9 +71,13 @@ export function Editor({ bridge }: Props) {
         try {
           setStatus('Saving...');
           const md = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);
-          // 손실 가드: 직렬화 결과가 마지막 정상 내용 대비 frontmatter/대량 내용을
-          // 잃었다면 파일을 덮어쓰지 않고 경고만 표시한다 (데이터 파괴 방지).
-          const guard = checkSaveSafety(lastKnownContentRef.current, md);
+          // 저장 직전 디스크 현재 본문을 부작용 없이 읽어 외부 편집(터미널/다른 프로세스)을 확인한다.
+          // 읽기에 실패하면 disk=undefined로 두어 기존 가드(2-인자)로만 검사한다.
+          let disk: string | undefined;
+          try { disk = await bridge.peekFile(); } catch { disk = undefined; }
+          // 손실 가드: 직렬화 결과가 마지막 정상 내용/디스크 대비 frontmatter·대량 내용을
+          // 잃었다면 파일을 덮어쓰지 않고 경고만 표시한다 (데이터 파괴/외부 편집 클로버 방지).
+          const guard = checkSaveSafety(lastKnownContentRef.current, md, disk);
           if (!guard.safe) {
             console.warn('save blocked by guard:', guard.reason, { md });
             isDirtyRef.current = true; // 미저장 상태 유지
@@ -120,20 +129,30 @@ export function Editor({ bridge }: Props) {
     });
   }, [editor]);
 
-  // 외부 변경 감지 (focus)
+  // 외부 변경 reload 핸들러: JCEF 'focus' 이벤트(불안정)와 Kotlin이 IDE 활성화/VFS 변경 시
+  // 호출하는 bridge.onReloadRequest 양쪽에 바인딩한다.
   useEffect(() => {
-    const handler = async () => {
+    const reload = async () => {
       if (isDirtyRef.current) return;
       try {
         const md = await bridge.loadFile();
         if (md === lastKnownContentRef.current) return;
+        // reload가 트리거하는 onChange를 user edit으로 오인해 되저장하지 않도록 억제.
+        // (loadedRef와 동일한 패턴: replaceBlocks 동안 플래그 on, 다음 tick에 off)
+        applyingRemoteRef.current = true;
         const blocks = await editor.tryParseMarkdownToBlocks(md);
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = md;
-      } catch { /* 무시 */ }
+        isDirtyRef.current = false;
+        window.setTimeout(() => { applyingRemoteRef.current = false; }, 0);
+      } catch { applyingRemoteRef.current = false; /* 무시 */ }
     };
-    window.addEventListener('focus', handler);
-    return () => window.removeEventListener('focus', handler);
+    window.addEventListener('focus', reload);
+    const unsub = bridge.onReloadRequest(reload);
+    return () => {
+      window.removeEventListener('focus', reload);
+      unsub();
+    };
   }, [bridge, editor]);
 
   // 테마 동기화

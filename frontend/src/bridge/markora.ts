@@ -12,6 +12,7 @@ export function parseQueryContext(href: string): BridgeContext {
 
 export function createBridge(ctx: BridgeContext): MarkoraBridge {
   const themeListeners = new Set<(t: Theme) => void>();
+  const reloadListeners = new Set<() => void>();
   // 로드 시 떼어낸 frontmatter를 보관했다가 저장 시 그대로 다시 붙인다.
   // (frontmatter는 BlockNote를 거치지 않으므로 손상되지 않는다)
   let storedFrontmatter = '';
@@ -23,6 +24,9 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
     window.markora = {
       applyTheme: (t: Theme) => {
         themeListeners.forEach(cb => cb(t));
+      },
+      reloadFromDisk: () => {
+        reloadListeners.forEach(cb => cb());
       },
     };
   }
@@ -43,6 +47,18 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       for (const [abs, original] of collectImageUrlMap(body, baseUri)) {
         imageMap.set(abs, original);
       }
+      return body;
+    },
+
+    // loadFile과 달리 storedFrontmatter/imageMap을 건드리지 않고 디스크 본문만 반환.
+    // 저장 직전 외부 편집 여부를 확인하는 용도라 부작용이 있으면 안 된다.
+    async peekFile() {
+      const res = await fetch(
+        `${ctx.serverUrl}api/file/read?path=${encodeURIComponent(ctx.filePath)}`
+      );
+      if (!res.ok) throw new Error(`peekFile failed: ${res.status}`);
+      const data = await res.json();
+      const { body } = splitFrontmatter(data.content ?? '');
       return body;
     },
 
@@ -85,6 +101,11 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       themeListeners.add(cb);
       return () => themeListeners.delete(cb);
     },
+
+    onReloadRequest(cb) {
+      reloadListeners.add(cb);
+      return () => reloadListeners.delete(cb);
+    },
   };
 }
 
@@ -92,16 +113,20 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
 export function createMockBridge(): MarkoraBridge {
   let storedMd = '# Markora dev mock\n\n*편집 가능합니다.*\n';
   const themeListeners = new Set<(t: Theme) => void>();
+  const reloadListeners = new Set<() => void>();
   if (typeof window !== 'undefined') {
     window.markora = {
       applyTheme: (t: Theme) => themeListeners.forEach(cb => cb(t)),
+      reloadFromDisk: () => reloadListeners.forEach(cb => cb()),
     };
   }
   return {
     getContext: () => ({ filePath: '/dev/mock.md', serverUrl: 'http://localhost:5173/', initialTheme: 'light' }),
     async loadFile() { return storedMd; },
+    async peekFile() { return storedMd; },
     async saveFile(md: string) { storedMd = md; console.log('[mock] saved', md.length, 'bytes'); },
     async uploadImage(file: File) { return { url: URL.createObjectURL(file) }; },
     onThemeChange(cb) { themeListeners.add(cb); return () => themeListeners.delete(cb); },
+    onReloadRequest(cb) { reloadListeners.add(cb); return () => reloadListeners.delete(cb); },
   };
 }

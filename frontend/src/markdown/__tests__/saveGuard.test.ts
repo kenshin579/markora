@@ -56,3 +56,47 @@ describe('checkSaveSafety', () => {
     expect(checkSaveSafety('', 'anything new').safe).toBe(true);
   });
 });
+
+describe('checkSaveSafety: 외부 편집 클로버 가드 (disk 인자)', () => {
+  const lines = (n: number, prefix = 'line') =>
+    Array.from({ length: n }, (_, i) => `${prefix} ${i}`).join('\n') + '\n';
+
+  it('디스크가 마지막 동기화본보다 커졌고(외부 추가) 저장본이 대폭 짧으면 차단', () => {
+    const previous = lines(20);          // markora가 마지막으로 본 내용
+    const disk = lines(40);              // 터미널(외부)에서 줄이 추가됨
+    const next = lines(5);               // lossy 직렬화 결과(짤림)
+    const r = checkSaveSafety(previous, next, disk);
+    expect(r.safe).toBe(false);
+    expect(r.reason).toMatch(/external/i);
+  });
+
+  it('캡처 사례 재현: 디스크 621줄인데 저장본 346줄이면 차단', () => {
+    const previous = lines(500);         // markora가 본 옛 내용(이미 stale)
+    const disk = lines(621);             // Claude Code가 만든 실제 디스크 내용
+    const next = lines(346);             // BlockNote lossy 직렬화(코드블록 중간 짤림)
+    const r = checkSaveSafety(previous, next, disk);
+    expect(r.safe).toBe(false);
+    expect(r.reason).toMatch(/external/i);
+  });
+
+  it('외부 편집이 없으면(disk == previous) 일반 편집은 허용 — 회귀 방지', () => {
+    const previous = lines(30);
+    const next = lines(30).replace('line 0', 'line 0 edited');
+    expect(checkSaveSafety(previous, next, previous).safe).toBe(true);
+  });
+
+  it('disk 미제공이면 기존 2-인자 동작 유지 — 회귀 방지', () => {
+    const previous = '# Heading\n\nsome paragraph text that is reasonably long\n';
+    const next = '# Heading\n\nsome paragraph text that is reasonably long, edited\n';
+    expect(checkSaveSafety(previous, next).safe).toBe(true);
+  });
+
+  it('이미지 URL 표현 차이로 disk!=previous지만 줄 수/내용이 사실상 같으면 차단하지 않음 (오탐 방지)', () => {
+    // 저장 후 previous(lastKnown)에는 절대 URL, disk에는 상대경로가 들어가 문자열은 다르지만
+    // 줄 수와 실내용은 동일 → 외부 편집이 아니므로 허용해야 한다.
+    const previous = '# Doc\n\n![a](http://localhost:63342/api/local-image?path=%2Fp%2Fimages%2Fa.png)\n\nbody\n';
+    const disk = '# Doc\n\n![a](images/a.png)\n\nbody\n';
+    const next = '# Doc\n\n![a](http://localhost:63342/api/local-image?path=%2Fp%2Fimages%2Fa.png)\n\nbody edited\n';
+    expect(checkSaveSafety(previous, next, disk).safe).toBe(true);
+  });
+});
