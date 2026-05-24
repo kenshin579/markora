@@ -33,21 +33,27 @@ describe('handleLineNavigationKeydown', () => {
   it('Cmd+Right → move forward lineboundary', () => {
     const e = makeEvent({ metaKey: true, key: 'ArrowRight' });
     const sel = makeSelection();
-    handleLineNavigationKeydown(e, sel);
+    const handled = handleLineNavigationKeydown(e, sel);
+    expect(handled).toBe(true);
+    expect(e.preventDefault).toHaveBeenCalledOnce();
     expect(sel.modify).toHaveBeenCalledWith('move', 'forward', 'lineboundary');
   });
 
   it('Shift+Cmd+Left → extend backward lineboundary', () => {
     const e = makeEvent({ metaKey: true, shiftKey: true, key: 'ArrowLeft' });
     const sel = makeSelection();
-    handleLineNavigationKeydown(e, sel);
+    const handled = handleLineNavigationKeydown(e, sel);
+    expect(handled).toBe(true);
+    expect(e.preventDefault).toHaveBeenCalledOnce();
     expect(sel.modify).toHaveBeenCalledWith('extend', 'backward', 'lineboundary');
   });
 
   it('Shift+Cmd+Right → extend forward lineboundary', () => {
     const e = makeEvent({ metaKey: true, shiftKey: true, key: 'ArrowRight' });
     const sel = makeSelection();
-    handleLineNavigationKeydown(e, sel);
+    const handled = handleLineNavigationKeydown(e, sel);
+    expect(handled).toBe(true);
+    expect(e.preventDefault).toHaveBeenCalledOnce();
     expect(sel.modify).toHaveBeenCalledWith('extend', 'forward', 'lineboundary');
   });
 
