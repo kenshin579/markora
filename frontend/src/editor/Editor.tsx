@@ -7,6 +7,7 @@ import { schema } from './schema';
 import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
 import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
+import { handleLineNavigationKeydown } from './lineNavigation';
 
 interface Props {
   bridge: MarkoraBridge;
@@ -154,6 +155,17 @@ export function Editor({ bridge }: Props) {
       unsub();
     };
   }, [bridge, editor]);
+
+  // macOS Cmd+←/→ 줄 처음/끝 이동, Shift+Cmd+←/→ 줄 단위 선택.
+  // JCEF에서 막히는 동작이라 직접 잡아 네이티브 Selection.modify로 처리한다.
+  useEffect(() => {
+    const target: HTMLElement = editor.domElement ?? document.body;
+    const onKeyDown = (e: KeyboardEvent) => {
+      handleLineNavigationKeydown(e, window.getSelection());
+    };
+    target.addEventListener('keydown', onKeyDown, true);
+    return () => target.removeEventListener('keydown', onKeyDown, true);
+  }, [editor]);
 
   // 테마 동기화
   useEffect(() => {
