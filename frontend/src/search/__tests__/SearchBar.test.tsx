@@ -38,10 +38,10 @@ describe('SearchBar', () => {
     expect(screen.getByText('3 / 12')).toBeInTheDocument();
   });
 
-  it('shows "No results" when query present but zero matches', () => {
+  it('shows "No results" when query present but zero matches', async () => {
     setup({ summary: { count: 0, current: 0 } });
     fireEvent.change(screen.getByPlaceholderText('Find'), { target: { value: 'zzz' } });
-    expect(screen.getByText('No results')).toBeInTheDocument();
+    expect(await screen.findByText('No results')).toBeInTheDocument();
   });
 
   it('disables next/prev when there are no matches', () => {
@@ -62,6 +62,21 @@ describe('SearchBar', () => {
   it('Escape triggers onClose', () => {
     const props = setup();
     fireEvent.keyDown(screen.getByPlaceholderText('Find'), { key: 'Escape' });
+    expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('whole-word toggle fires onSearch with wholeWord: true', async () => {
+    const props = setup();
+    fireEvent.change(screen.getByPlaceholderText('Find'), { target: { value: 'cat' } });
+    fireEvent.click(screen.getByRole('button', { name: /whole word/i }));
+    await vi.waitFor(() =>
+      expect(props.onSearch).toHaveBeenLastCalledWith('cat', { caseSensitive: false, wholeWord: true }),
+    );
+  });
+
+  it('close button triggers onClose', () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
     expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 });

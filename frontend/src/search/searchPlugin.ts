@@ -86,7 +86,7 @@ export function createSearchPlugin(onSummary: (s: SearchSummary) => void): Plugi
         // Document changed while a search is active → recompute against new doc.
         if (tr.docChanged && value.query) {
           const matches = computeMatches(newState, value.query, value.options);
-          const current = matches.length === 0 ? -1 : Math.min(value.current, matches.length - 1);
+          const current = matches.length === 0 ? -1 : Math.max(0, Math.min(value.current, matches.length - 1));
           queueMicrotask(() => onSummary({ count: matches.length, current: current + 1 }));
           return { ...value, matches, current };
         }

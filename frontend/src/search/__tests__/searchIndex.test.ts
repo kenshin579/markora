@@ -53,6 +53,23 @@ describe('buildSearchIndex', () => {
     const doc = fakeDoc([{ kind: 'text', pos: 1, text: 'x' }]);
     expect(buildSearchIndex(doc)).toEqual([]);
   });
+
+  it('prevents cross-block matches by keeping blocks as separate segments', () => {
+    // block1 contains "a" at pos 1; block2 contains "b" at pos 4.
+    // The resulting index must be two separate segments, NOT one "ab" segment,
+    // so a query like "ab" can never span the block boundary.
+    const doc = fakeDoc([
+      { kind: 'block', pos: 0 },
+      { kind: 'text', pos: 1, text: 'a' },
+      { kind: 'block', pos: 3 },
+      { kind: 'text', pos: 4, text: 'b' },
+    ]);
+    const index = buildSearchIndex(doc);
+    expect(index).toEqual([
+      { text: 'a', positions: [1] },
+      { text: 'b', positions: [4] },
+    ]);
+  });
 });
 
 describe('rangeToPos', () => {

@@ -1,6 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { MatchOptions } from './findMatches';
 import type { SearchSummary } from './searchPlugin';
+
+export interface SearchBarHandle {
+  focus: () => void;
+}
 
 interface Props {
   summary: SearchSummary;
@@ -10,11 +14,23 @@ interface Props {
   onClose: () => void;
 }
 
-export function SearchBar({ summary, onSearch, onNext, onPrev, onClose }: Props) {
+export const SearchBar = forwardRef<SearchBarHandle, Props>(function SearchBar(
+  { summary, onSearch, onNext, onPrev, onClose },
+  ref,
+) {
   const [query, setQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
+  const [searched, setSearched] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Expose imperative focus handle for Cmd+F re-press when bar is already open.
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    },
+  }));
 
   // Autofocus + select-all when the bar mounts.
   useEffect(() => {
@@ -24,7 +40,13 @@ export function SearchBar({ summary, onSearch, onNext, onPrev, onClose }: Props)
 
   // Fire search whenever query or options change (debounced).
   useEffect(() => {
-    const id = window.setTimeout(() => onSearch(query, { caseSensitive, wholeWord }), 100);
+    if (query.length === 0) {
+      setSearched(false);
+    }
+    const id = window.setTimeout(() => {
+      setSearched(query.length > 0);
+      onSearch(query, { caseSensitive, wholeWord });
+    }, 100);
     return () => window.clearTimeout(id);
   }, [query, caseSensitive, wholeWord, onSearch]);
 
@@ -71,7 +93,7 @@ export function SearchBar({ summary, onSearch, onNext, onPrev, onClose }: Props)
         W
       </button>
       <span className="markora-search-count">
-        {hasMatches ? `${summary.current} / ${summary.count}` : hasQuery ? 'No results' : ''}
+        {hasMatches ? `${summary.current} / ${summary.count}` : searched && hasQuery ? 'No results' : ''}
       </span>
       <button
         type="button"
@@ -96,4 +118,4 @@ export function SearchBar({ summary, onSearch, onNext, onPrev, onClose }: Props)
       </button>
     </div>
   );
-}
+});

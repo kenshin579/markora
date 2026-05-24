@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
 import '@blocknote/mantine/style.css';
@@ -8,7 +8,7 @@ import { postParse, preSerialize, splitInlineMath } from '../markdown/customPars
 import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 import { handleLineNavigationKeydown } from './lineNavigation';
-import { SearchBar } from '../search/SearchBar';
+import { SearchBar, type SearchBarHandle } from '../search/SearchBar';
 import {
   createSearchPlugin,
   setSearch as pmSetSearch,
@@ -39,6 +39,7 @@ export function Editor({ bridge }: Props) {
   const [status, setStatus] = useState<string>('Ready');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSummary, setSearchSummary] = useState<SearchSummary>({ count: 0, current: 0 });
+  const searchBarRef = useRef<SearchBarHandle>(null);
   const isDirtyRef = useRef(false);
   const lastKnownContentRef = useRef<string>('');
   const saveTimerRef = useRef<number | null>(null);
@@ -200,7 +201,7 @@ export function Editor({ bridge }: Props) {
     };
   }, [editor]);
 
-  // Cmd/Ctrl+F 로 검색 바 열기 (열려 있으면 SearchBar 자체가 입력 포커스를 처리).
+  // Cmd/Ctrl+F 로 검색 바 열기. 이미 열려 있으면 입력창에 포커스+전체선택한다.
   useEffect(() => {
     const target: HTMLElement =
       editor.domElement ?? document.querySelector<HTMLElement>('.markora-shell') ?? document.body;
@@ -209,12 +210,16 @@ export function Editor({ bridge }: Props) {
       if (mod && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         e.preventDefault();
         e.stopPropagation();
-        setSearchOpen(true);
+        if (searchOpen) {
+          searchBarRef.current?.focus();
+        } else {
+          setSearchOpen(true);
+        }
       }
     };
     target.addEventListener('keydown', onKeyDown, true);
     return () => target.removeEventListener('keydown', onKeyDown, true);
-  }, [editor]);
+  }, [editor, searchOpen]);
 
   // 테마 동기화
   useEffect(() => {
@@ -229,29 +234,33 @@ export function Editor({ bridge }: Props) {
     reinitOnThemeChange(bridge.getContext().initialTheme);
   }, [bridge]);
 
-  const handleSearch = (query: string, options: MatchOptions) => {
+  const handleSearch = useCallback((query: string, options: MatchOptions) => {
     const view = editor.prosemirrorView;
     if (view) pmSetSearch(view, query, options);
-  };
-  const handleNext = () => {
+  }, [editor]);
+
+  const handleNext = useCallback(() => {
     const view = editor.prosemirrorView;
     if (view) pmGotoNext(view);
-  };
-  const handlePrev = () => {
+  }, [editor]);
+
+  const handlePrev = useCallback(() => {
     const view = editor.prosemirrorView;
     if (view) pmGotoPrev(view);
-  };
-  const handleCloseSearch = () => {
+  }, [editor]);
+
+  const handleCloseSearch = useCallback(() => {
     const view = editor.prosemirrorView;
     if (view) pmClearSearch(view);
     setSearchOpen(false);
     editor.prosemirrorView?.focus();
-  };
+  }, [editor]);
 
   return (
     <div className="markora-shell">
       {searchOpen && (
         <SearchBar
+          ref={searchBarRef}
           summary={searchSummary}
           onSearch={handleSearch}
           onNext={handleNext}
