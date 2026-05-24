@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BlockNoteView } from '@blocknote/mantine';
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
 import '@blocknote/mantine/style.css';
@@ -8,6 +8,16 @@ import { postParse, preSerialize, splitInlineMath } from '../markdown/customPars
 import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 import { handleLineNavigationKeydown } from './lineNavigation';
+import { SearchBar, type SearchBarHandle } from '../search/SearchBar';
+import {
+  createSearchPlugin,
+  setSearch as pmSetSearch,
+  gotoNext as pmGotoNext,
+  gotoPrev as pmGotoPrev,
+  clearSearch as pmClearSearch,
+  type SearchSummary,
+} from '../search/searchPlugin';
+import type { MatchOptions } from '../search/findMatches';
 
 interface Props {
   bridge: MarkoraBridge;
@@ -27,6 +37,9 @@ export function Editor({ bridge }: Props) {
   });
   const [theme, setTheme] = useState<Theme>(bridge.getContext().initialTheme);
   const [status, setStatus] = useState<string>('Ready');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchSummary, setSearchSummary] = useState<SearchSummary>({ count: 0, current: 0 });
+  const searchBarRef = useRef<SearchBarHandle>(null);
   const isDirtyRef = useRef(false);
   const lastKnownContentRef = useRef<string>('');
   const saveTimerRef = useRef<number | null>(null);
@@ -170,6 +183,44 @@ export function Editor({ bridge }: Props) {
     return () => target.removeEventListener('keydown', onKeyDown, true);
   }, [editor]);
 
+  // 검색 플러그인을 ProseMirror view에 한 번 등록 (데코레이션 전용 — 문서 변경 없음).
+  useEffect(() => {
+    const view = editor.prosemirrorView;
+    if (!view) return;
+    const plugin = createSearchPlugin(setSearchSummary);
+    view.updateState(
+      view.state.reconfigure({ plugins: [...view.state.plugins, plugin] }),
+    );
+    // 언마운트 시 플러그인 제거.
+    return () => {
+      const v = editor.prosemirrorView;
+      if (!v) return;
+      v.updateState(
+        v.state.reconfigure({ plugins: v.state.plugins.filter((p) => p !== plugin) }),
+      );
+    };
+  }, [editor]);
+
+  // Cmd/Ctrl+F 로 검색 바 열기. 이미 열려 있으면 입력창에 포커스+전체선택한다.
+  useEffect(() => {
+    const target: HTMLElement =
+      editor.domElement ?? document.querySelector<HTMLElement>('.markora-shell') ?? document.body;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (searchOpen) {
+          searchBarRef.current?.focus();
+        } else {
+          setSearchOpen(true);
+        }
+      }
+    };
+    target.addEventListener('keydown', onKeyDown, true);
+    return () => target.removeEventListener('keydown', onKeyDown, true);
+  }, [editor, searchOpen]);
+
   // 테마 동기화
   useEffect(() => {
     return bridge.onThemeChange((t) => {
@@ -183,8 +234,40 @@ export function Editor({ bridge }: Props) {
     reinitOnThemeChange(bridge.getContext().initialTheme);
   }, [bridge]);
 
+  const handleSearch = useCallback((query: string, options: MatchOptions) => {
+    const view = editor.prosemirrorView;
+    if (view) pmSetSearch(view, query, options);
+  }, [editor]);
+
+  const handleNext = useCallback(() => {
+    const view = editor.prosemirrorView;
+    if (view) pmGotoNext(view);
+  }, [editor]);
+
+  const handlePrev = useCallback(() => {
+    const view = editor.prosemirrorView;
+    if (view) pmGotoPrev(view);
+  }, [editor]);
+
+  const handleCloseSearch = useCallback(() => {
+    const view = editor.prosemirrorView;
+    if (view) pmClearSearch(view);
+    setSearchOpen(false);
+    editor.prosemirrorView?.focus();
+  }, [editor]);
+
   return (
     <div className="markora-shell">
+      {searchOpen && (
+        <SearchBar
+          ref={searchBarRef}
+          summary={searchSummary}
+          onSearch={handleSearch}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onClose={handleCloseSearch}
+        />
+      )}
       <BlockNoteView editor={editor} theme={theme} slashMenu={false}>
         <SuggestionMenuController
           triggerCharacter="/"
