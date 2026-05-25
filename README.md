@@ -10,6 +10,8 @@ Markora brings a distraction-free, rich visual Markdown editing experience direc
 
 - **WYSIWYG Editing** — Notion-style block editor powered by [BlockNote](https://www.blocknotejs.org/)
 - **Block UX** — Drag handle, slash menu (`/`), block transforms, inline formatting
+- **Code Highlighting** — Syntax highlighting for 23+ languages via [Shiki](https://shiki.style/), with a per-block language picker and themes synced to your IDE (`github-light` / `one-dark-pro`)
+- **In-Editor Search** — Find text with `Cmd/Ctrl+F`, including case-sensitive and whole-word options plus next/previous navigation
 - **Theme Sync** — Automatically matches your IDE's Dark/Light theme
 - **Auto-Save** — Changes are saved automatically with a configurable debounce delay
 - **Image Support** — Drag & drop or paste images from clipboard; stored in a local `images/` directory with relative paths
@@ -19,13 +21,13 @@ Markora brings a distraction-free, rich visual Markdown editing experience direc
 
 ## Slash Commands
 
-Type `/` in the editor to access BlockNote's default block menu (heading, list, quote, code, table, image, etc.) plus Markora-specific items:
+Type `/` in the editor to access BlockNote's default block menu (heading, list, quote, code, table, image, etc.) plus Markora-specific items, all grouped under **Advanced**:
 
-| Command | Description |
-|---------|-------------|
-| `/math` | LaTeX math block (` ```math `) |
-| `/equation` | Inline LaTeX (`$...$`) |
-| `/mermaid` | Mermaid diagram block (` ```mermaid `) |
+| Menu Item | Description | Aliases (type after `/`) |
+|-----------|-------------|--------------------------|
+| **Math (block)** | LaTeX math block (` ```math `) | `math`, `latex`, `equation`, `수식` |
+| **Math (inline)** | Inline LaTeX (`$...$`) | `equation`, `inline`, `인라인` |
+| **Mermaid** | Mermaid diagram block (` ```mermaid `) | `mermaid`, `diagram`, `flowchart`, `다이어그램` |
 
 For the full list of standard blocks, see [BlockNote documentation](https://www.blocknotejs.org/docs/editor-basics/default-schema).
 
@@ -111,6 +113,7 @@ The `release.yml` GitHub Actions workflow is triggered by the `v*` tag push, bui
 - **Vite + React** — Frontend bundle pipeline
 - **KaTeX** — LaTeX math rendering
 - **Mermaid** — Diagram rendering
+- **Shiki** — Code block syntax highlighting
 
 ## Contributing
 
