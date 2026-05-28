@@ -9,6 +9,12 @@ export function initMermaid(theme: 'light' | 'dark') {
     startOnLoad: false,
     theme: theme === 'dark' ? 'dark' : 'default',
     securityLevel: 'strict',
+    // top-level htmlLabels:false: JCEF의 임베디드 Chromium은 mermaid 기본값인
+    // foreignObject HTML 라벨의 자동 줄바꿈을 적용하지 못해 긴 한글이 고정 폭
+    // 박스를 넘어 짤린다. SVG <text>/<tspan>으로 전환하면 mermaid가
+    // getComputedTextLength 기반으로 직접 wrap하므로 JCEF에서도 안정적이다.
+    // 주의: mermaid 11은 flowchart.htmlLabels 를 무시하므로 반드시 top-level.
+    htmlLabels: false,
   });
   initialized = true;
 }
