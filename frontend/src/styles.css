@@ -174,9 +174,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 
 /* Frontmatter 편집 패널 */
 .markora-frontmatter {
-  max-width: var(--markora-content-width, 900px);
-  margin: 8px auto 0;
-  padding: 0 56px; /* BlockNote 본문 좌우 여백과 대략 정렬 */
+  width: 100%;
+  margin: 8px 0 0;
+  /* BlockNote 본문(.bn-editor)의 padding-inline:54px과 동일하게 좌우 정렬 */
+  padding: 0 54px;
   box-sizing: border-box;
 }
 .markora-frontmatter-header {
