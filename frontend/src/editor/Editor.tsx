@@ -8,6 +8,7 @@ import { postParse, preSerialize, splitInlineMath } from '../markdown/customPars
 import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 import { handleLineNavigationKeydown } from './lineNavigation';
+import { FrontmatterPanel } from './FrontmatterPanel';
 import { SearchBar, type SearchBarHandle } from '../search/SearchBar';
 import {
   createSearchPlugin,
@@ -42,6 +43,9 @@ export function Editor({ bridge }: Props) {
   const searchBarRef = useRef<SearchBarHandle>(null);
   const isDirtyRef = useRef(false);
   const lastKnownContentRef = useRef<string>('');
+  const [frontmatter, setFrontmatter] = useState('');
+  // debounce 저장 타이머(1초 뒤 실행)가 stale 클로저를 잡지 않도록 최신 frontmatter를 ref로 보관.
+  const frontmatterRef = useRef('');
   const saveTimerRef = useRef<number | null>(null);
   const loadedRef = useRef(false);   // 초기 load 완료 여부 (load-induced onChange를 user edit과 구분)
   // 외부 변경 reload가 트리거하는 onChange를 user edit과 구분 (reload된 내용을 즉시 lossy 저장으로 되덮는 것 방지)
@@ -52,11 +56,13 @@ export function Editor({ bridge }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const md = await bridge.loadFile();
+        const { body, frontmatter: fm } = await bridge.loadFile();
         if (cancelled) return;
-        const blocks = await editor.tryParseMarkdownToBlocks(md);
+        setFrontmatter(fm);
+        frontmatterRef.current = fm;
+        const blocks = await editor.tryParseMarkdownToBlocks(body);
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
-        lastKnownContentRef.current = md;
+        lastKnownContentRef.current = body;
         isDirtyRef.current = false;
         // replaceBlocks가 트리거한 onChange는 user edit이 아님 — 다음 tick 이후로 onChange를 user edit으로 인정
         window.setTimeout(() => { loadedRef.current = true; }, 0);
@@ -70,49 +76,56 @@ export function Editor({ bridge }: Props) {
     return () => { cancelled = true; };
   }, [bridge, editor]);
 
-  // onChange → 디바운스 저장
-  useEffect(() => {
-    return editor.onChange(() => {
-      // 초기 load가 트리거한 onChange는 무시 (user edit만 dirty 처리)
-      if (!loadedRef.current) return;
-      // 외부 변경 reload(replaceBlocks)가 트리거한 onChange도 user edit이 아니므로 무시.
-      // (이게 없으면 reload 직후 1초 뒤 lossy 직렬화로 방금 불러온 외부 내용을 되덮어쓴다)
-      if (applyingRemoteRef.current) return;
-      isDirtyRef.current = true;
-      setStatus('Modified');
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = window.setTimeout(async () => {
-        try {
-          setStatus('Saving...');
-          const md = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);
-          // 저장 직전 디스크 현재 본문을 부작용 없이 읽어 외부 편집(터미널/다른 프로세스)을 확인한다.
-          // 읽기에 실패하면 disk=undefined로 두어 기존 가드(2-인자)로만 검사한다.
-          let disk: string | undefined;
-          try { disk = await bridge.peekFile(); } catch { disk = undefined; }
-          // 손실 가드: 직렬화 결과가 마지막 정상 내용/디스크 대비 frontmatter·대량 내용을
-          // 잃었다면 파일을 덮어쓰지 않고 경고만 표시한다 (데이터 파괴/외부 편집 클로버 방지).
-          const guard = checkSaveSafety(lastKnownContentRef.current, md, disk);
-          if (!guard.safe) {
-            console.warn('save blocked by guard:', guard.reason, { md });
-            isDirtyRef.current = true; // 미저장 상태 유지
-            setStatus(`⚠ Save blocked: ${guard.reason}`);
-            return;
-          }
-          await bridge.saveFile(md);
-          lastKnownContentRef.current = md;
-          isDirtyRef.current = false;
-          setStatus('Saved');
-          window.setTimeout(() => {
-            if (!isDirtyRef.current) setStatus('Ready');
-          }, 2000);
-        } catch (e) {
-          console.error('saveFile failed:', e);
-          const msg = e instanceof Error ? e.message : String(e);
-          setStatus(`Save failed: ${msg.substring(0, 80)}`);
+  // 본문/패널 어느 쪽이 바뀌든 호출하는 공용 디바운스 저장.
+  const scheduleSave = useCallback(() => {
+    // 초기 load가 트리거한 변경은 무시 (user edit만 dirty 처리)
+    if (!loadedRef.current) return;
+    // 외부 변경 reload(replaceBlocks)가 트리거한 onChange도 user edit이 아니므로 무시.
+    if (applyingRemoteRef.current) return;
+    isDirtyRef.current = true;
+    setStatus('Modified');
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(async () => {
+      try {
+        setStatus('Saving...');
+        const body = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);
+        // 저장 직전 디스크 현재 본문을 부작용 없이 읽어 외부 편집(터미널 등)을 확인한다.
+        let disk: string | undefined;
+        try { disk = await bridge.peekFile(); } catch { disk = undefined; }
+        // 손실 가드: 본문(body)이 마지막 정상 내용/디스크 대비 대량 손실이면 덮어쓰지 않는다.
+        const guard = checkSaveSafety(lastKnownContentRef.current, body, disk);
+        if (!guard.safe) {
+          console.warn('save blocked by guard:', guard.reason, { body });
+          isDirtyRef.current = true; // 미저장 상태 유지
+          setStatus(`⚠ Save blocked: ${guard.reason}`);
+          return;
         }
-      }, 1000);
-    });
+        await bridge.saveFile(body, frontmatterRef.current);
+        lastKnownContentRef.current = body;
+        isDirtyRef.current = false;
+        setStatus('Saved');
+        window.setTimeout(() => {
+          if (!isDirtyRef.current) setStatus('Ready');
+        }, 2000);
+      } catch (e) {
+        console.error('saveFile failed:', e);
+        const msg = e instanceof Error ? e.message : String(e);
+        setStatus(`Save failed: ${msg.substring(0, 80)}`);
+      }
+    }, 1000);
   }, [editor, bridge]);
+
+  // 본문 편집 → 디바운스 저장
+  useEffect(() => {
+    return editor.onChange(() => scheduleSave());
+  }, [editor, scheduleSave]);
+
+  // 패널에서 frontmatter가 바뀌면 ref를 갱신하고 본문과 동일한 저장 흐름을 태운다.
+  const handleFrontmatterChange = useCallback((next: string) => {
+    setFrontmatter(next);
+    frontmatterRef.current = next;
+    scheduleSave();
+  }, [scheduleSave]);
 
   // 인라인 수식 자동 변환: 사용자가 블록을 떠날 때 직전 블록의 텍스트에서 $...$ 패턴을 인라인 KaTeX 노드로 split
   useEffect(() => {
@@ -149,14 +162,19 @@ export function Editor({ bridge }: Props) {
     const reload = async () => {
       if (isDirtyRef.current) return;
       try {
-        const md = await bridge.loadFile();
-        if (md === lastKnownContentRef.current) return;
+        const { body, frontmatter: fm } = await bridge.loadFile();
+        // 외부에서 frontmatter만 바뀐 경우에도 패널을 동기화 (setFrontmatter는 저장을 트리거하지 않음).
+        if (fm !== frontmatterRef.current) {
+          setFrontmatter(fm);
+          frontmatterRef.current = fm;
+        }
+        if (body === lastKnownContentRef.current) return;
         // reload가 트리거하는 onChange를 user edit으로 오인해 되저장하지 않도록 억제.
         // (loadedRef와 동일한 패턴: replaceBlocks 동안 플래그 on, 다음 tick에 off)
         applyingRemoteRef.current = true;
-        const blocks = await editor.tryParseMarkdownToBlocks(md);
+        const blocks = await editor.tryParseMarkdownToBlocks(body);
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
-        lastKnownContentRef.current = md;
+        lastKnownContentRef.current = body;
         isDirtyRef.current = false;
         window.setTimeout(() => { applyingRemoteRef.current = false; }, 0);
       } catch { applyingRemoteRef.current = false; /* 무시 */ }
@@ -268,6 +286,7 @@ export function Editor({ bridge }: Props) {
           onClose={handleCloseSearch}
         />
       )}
+      <FrontmatterPanel value={frontmatter} onChange={handleFrontmatterChange} />
       <BlockNoteView editor={editor} theme={theme} slashMenu={false}>
         <SuggestionMenuController
           triggerCharacter="/"
