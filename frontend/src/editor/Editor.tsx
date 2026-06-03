@@ -42,7 +42,7 @@ export function Editor({ bridge }: Props) {
   const [searchSummary, setSearchSummary] = useState<SearchSummary>({ count: 0, current: 0 });
   const searchBarRef = useRef<SearchBarHandle>(null);
   const isDirtyRef = useRef(false);
-  const lastKnownContentRef = useRef<string>('');
+  const lastKnownContentRef = useRef<string>(''); // body only — frontmatter은 frontmatterRef로 별도 추적
   const [frontmatter, setFrontmatter] = useState('');
   // debounce 저장 타이머(1초 뒤 실행)가 stale 클로저를 잡지 않도록 최신 frontmatter를 ref로 보관.
   const frontmatterRef = useRef('');
@@ -86,6 +86,7 @@ export function Editor({ bridge }: Props) {
     setStatus('Modified');
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(async () => {
+      saveTimerRef.current = null;
       try {
         setStatus('Saving...');
         const body = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);

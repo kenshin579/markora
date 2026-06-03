@@ -35,6 +35,7 @@ export function FrontmatterPanel({ value, onChange }: Props) {
           className="markora-frontmatter-input"
           value={value}
           spellCheck={false}
+          autoFocus={!value}
           rows={Math.max(3, value.split('\n').length + 1)}
           placeholder={'title: ...\ntags: [...]'}
           onChange={(e) => onChange(e.target.value)}
