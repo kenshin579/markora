@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createBridge, parseQueryContext } from '../markora';
+import { createBridge, createMockBridge, parseQueryContext } from '../markora';
 
 describe('parseQueryContext', () => {
   it('reads filePath, serverUrl, dark from URL query', () => {
@@ -199,5 +199,32 @@ describe('onThemeChange', () => {
     unsub();
     window.markora.applyTheme('light');
     expect(cb).not.toHaveBeenCalled();
+  });
+});
+
+describe('createMockBridge', () => {
+  it('loadFile은 mock 본문에서 frontmatter와 body를 분리한다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Hello\n', 'title: T');
+    const { body, frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('title: T');
+    expect(body).toBe('# Hello\n');
+  });
+
+  it('saveFile은 frontmatter를 펜스로 감싸 저장하고 peekFile은 body만 반환한다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Body\n', 'title: T');
+    const peeked = await b.peekFile();
+    expect(peeked).toBe('# Body\n');
+    const { frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('title: T');
+  });
+
+  it('frontmatter가 비면 저장 시 frontmatter가 삭제된다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Body\n', '');
+    const { body, frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('');
+    expect(body).toBe('# Body\n');
   });
 });

@@ -46,7 +46,7 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       return { body, frontmatter };
     },
 
-    // loadFile과 달리 storedFrontmatter/imageMap을 건드리지 않고 디스크 본문만 반환.
+    // loadFile과 달리 imageMap을 건드리지 않고 디스크 본문만 반환.
     // 저장 직전 외부 편집 여부를 확인하는 용도라 부작용이 있으면 안 된다.
     async peekFile() {
       const res = await fetch(
