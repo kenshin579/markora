@@ -1,22 +1,27 @@
-// 브릿지 경계 문자열 변환 (옵션 B: 비편집 영역 보존)
+// 브릿지 경계 문자열 변환 (옵션 B: 비편집 영역 보존 + raw 편집)
 //
 // BlockNote의 마크다운 라운드트립은 YAML frontmatter를 파괴한다(예: `---` → `***`).
-// frontmatter는 편집 대상이 아니므로, 로드 시 본문과 분리해 보관하고 저장 시 본문 앞에
-// 그대로 다시 붙인다. 이렇게 하면 frontmatter가 BlockNote를 거치지 않아 손상되지 않는다.
+// frontmatter는 BlockNote를 거치지 않는다: 로드 시 펜스(`---`) 안쪽 inner YAML만 떼어
+// 패널에서 편집하고, 저장 시 다시 펜스로 감싸 본문 앞에 붙인다. inner YAML이 비어 있으면
+// frontmatter를 통째로 생략한다(= 삭제). 펜스/BOM은 정규화되어 LF로 직렬화된다.
 
-const FRONTMATTER_RE = /^(﻿?---\r?\n[\s\S]*?\r?\n---\r?\n)/;
+// 문서 맨 앞(BOM 허용)의 `---\n ... \n---\n` 블록만 frontmatter로 인정.
+// 캡처 그룹 1 = 펜스 사이 inner YAML. 본문 중간의 --- 구분선은 매칭되지 않는다.
+const FRONTMATTER_RE = /^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
 export interface SplitResult {
-  frontmatter: string; // 구분자/줄바꿈 포함, 없으면 ''
+  frontmatter: string; // 펜스/BOM 없는 inner YAML, 없으면 ''
   body: string;
 }
 
 export function splitFrontmatter(md: string): SplitResult {
   const m = FRONTMATTER_RE.exec(md);
   if (!m) return { frontmatter: '', body: md };
-  return { frontmatter: m[1], body: md.slice(m[1].length) };
+  return { frontmatter: m[1], body: md.slice(m[0].length) };
 }
 
 export function joinFrontmatter(frontmatter: string, body: string): string {
-  return frontmatter ? frontmatter + body : body;
+  const inner = frontmatter.trim();
+  if (inner === '') return body;
+  return `---\n${inner}\n---\n${body}`;
 }
