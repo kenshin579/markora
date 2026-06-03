@@ -172,3 +172,117 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   background: rgba(255, 145, 0, 0.75);
 }
 
+/* Frontmatter 편집 패널 */
+.markora-frontmatter {
+  width: 100%;
+  margin: 8px 0 0;
+  /* BlockNote 본문(.bn-editor)의 padding-inline:54px과 동일하게 좌우 정렬 */
+  padding: 0 54px;
+  box-sizing: border-box;
+}
+.markora-frontmatter-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.markora-frontmatter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--mantine-color-dimmed, #888);
+  text-align: left;
+}
+.markora-frontmatter-caret {
+  display: inline-block;
+  width: 1em;
+}
+
+/* 6-dot 핸들: 헤더에 호버할 때만 나타난다 (BlockNote 드래그 핸들과 같은 시각 언어).
+ * opacity로만 숨겨 자리(layout)는 유지 → 나타날 때 라벨이 밀리지 않는다. */
+.markora-frontmatter-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.markora-frontmatter-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 3px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--mantine-color-dimmed, #888);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.markora-frontmatter-header:hover .markora-frontmatter-handle,
+.markora-frontmatter-handle:focus-visible,
+.markora-frontmatter-handle[aria-expanded="true"] {
+  opacity: 1;
+}
+.markora-frontmatter-handle:hover {
+  background: var(--mantine-color-default-hover, rgba(127, 127, 127, 0.12));
+}
+.markora-frontmatter-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  min-width: 140px;
+  margin-top: 2px;
+  padding: 4px;
+  border: 1px solid var(--mantine-color-default-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--mantine-color-body, #fff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.markora-frontmatter-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--mantine-color-red-7, #c92a2a);
+  text-align: left;
+}
+.markora-frontmatter-menu-item:hover {
+  background: var(--mantine-color-default-hover, rgba(127, 127, 127, 0.12));
+}
+[data-mantine-color-scheme="dark"] .markora-frontmatter-menu {
+  background: #2b2d30;
+  border-color: #3c3f41;
+}
+[data-mantine-color-scheme="dark"] .markora-frontmatter-menu-item {
+  color: #ff8787;
+}
+.markora-frontmatter-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--mantine-color-default-border, #d0d0d0);
+  border-radius: 6px;
+  background: var(--mantine-color-default-hover, rgba(127,127,127,0.06));
+  color: inherit;
+  resize: vertical;
+}
+

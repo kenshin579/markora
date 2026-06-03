@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { splitFrontmatter, joinFrontmatter } from '../transform';
 
 describe('splitFrontmatter', () => {
-  it('맨 앞 YAML frontmatter를 본문과 분리', () => {
+  it('맨 앞 YAML frontmatter의 inner YAML만 떼어내고 본문을 분리', () => {
     const md = '---\ntitle: Post\ntags: [a, b]\n---\n\n# Body\n\ntext\n';
     const { frontmatter, body } = splitFrontmatter(md);
-    expect(frontmatter).toBe('---\ntitle: Post\ntags: [a, b]\n---\n');
+    expect(frontmatter).toBe('title: Post\ntags: [a, b]');
     expect(body).toBe('\n# Body\n\ntext\n');
   });
 
@@ -23,33 +23,50 @@ describe('splitFrontmatter', () => {
     expect(body).toBe(md);
   });
 
-  it('BOM이 앞에 있어도 분리', () => {
+  it('BOM이 앞에 있어도 inner YAML만 분리(BOM 제거)', () => {
     const md = '﻿---\ntitle: X\n---\nbody\n';
     const { frontmatter, body } = splitFrontmatter(md);
-    expect(frontmatter).toBe('﻿---\ntitle: X\n---\n');
+    expect(frontmatter).toBe('title: X');
     expect(body).toBe('body\n');
   });
 
-  it('CRLF 줄바꿈도 처리', () => {
+  it('CRLF 입력도 inner YAML을 분리(본문은 그대로)', () => {
     const md = '---\r\ntitle: X\r\n---\r\nbody\r\n';
     const { frontmatter, body } = splitFrontmatter(md);
-    expect(frontmatter).toBe('---\r\ntitle: X\r\n---\r\n');
+    expect(frontmatter).toBe('title: X');
     expect(body).toBe('body\r\n');
+  });
+
+  it('빈 줄 하나뿐인 frontmatter 블록(---\\n\\n---\\n)도 인식하고 inner는 빈 문자열', () => {
+    const md = '---\n\n---\nbody\n';
+    const { frontmatter, body } = splitFrontmatter(md);
+    expect(frontmatter).toBe('');
+    expect(body).toBe('body\n');
   });
 });
 
 describe('joinFrontmatter', () => {
-  it('frontmatter를 body 앞에 그대로 붙인다', () => {
-    expect(joinFrontmatter('---\ntitle: X\n---\n', '\n# Body\n')).toBe('---\ntitle: X\n---\n\n# Body\n');
+  it('inner YAML을 --- 펜스로 감싸 body 앞에 붙인다', () => {
+    expect(joinFrontmatter('title: X', '\n# Body\n')).toBe('---\ntitle: X\n---\n\n# Body\n');
   });
 
-  it('frontmatter가 빈 문자열이면 body만 반환', () => {
+  it('frontmatter가 빈 문자열이면 body만 반환(frontmatter 삭제)', () => {
     expect(joinFrontmatter('', '# Body\n')).toBe('# Body\n');
   });
 
-  it('split → join 라운드트립이 원본을 보존', () => {
+  it('frontmatter가 공백뿐이어도 body만 반환', () => {
+    expect(joinFrontmatter('   \n  ', '# Body\n')).toBe('# Body\n');
+  });
+
+  it('split → join 라운드트립이 LF 본문 원본을 보존', () => {
     const md = '---\ntitle: Post\n---\n\n# Body\n\ntext\n';
     const { frontmatter, body } = splitFrontmatter(md);
     expect(joinFrontmatter(frontmatter, body)).toBe(md);
+  });
+
+  it('CRLF 라운드트립: 펜스는 LF로 정규화, 본문 CRLF는 유지', () => {
+    const md = '---\r\ntitle: X\r\n---\r\nbody\r\n';
+    const { frontmatter, body } = splitFrontmatter(md);
+    expect(joinFrontmatter(frontmatter, body)).toBe('---\ntitle: X\n---\nbody\r\n');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createBridge, parseQueryContext } from '../markora';
+import { createBridge, createMockBridge, parseQueryContext } from '../markora';
 
 describe('parseQueryContext', () => {
   it('reads filePath, serverUrl, dark from URL query', () => {
@@ -38,8 +38,9 @@ describe('createBridge (real fetch)', () => {
       json: async () => ({ content: '# hello' }),
     });
     const b = createBridge(ctx);
-    const md = await b.loadFile();
-    expect(md).toBe('# hello');
+    const { body, frontmatter } = await b.loadFile();
+    expect(body).toBe('# hello');
+    expect(frontmatter).toBe('');
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'http://localhost:9000/api/file/read?path=%2Ftmp%2Fx.md'
     );
@@ -48,7 +49,7 @@ describe('createBridge (real fetch)', () => {
   it('saveFile POSTs JSON', async () => {
     (globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) });
     const b = createBridge(ctx);
-    await b.saveFile('# updated');
+    await b.saveFile('# updated', '');
     const call = (globalThis.fetch as any).mock.calls[0];
     expect(call[0]).toBe('http://localhost:9000/api/file/save');
     expect(call[1].method).toBe('POST');
@@ -61,9 +62,10 @@ describe('createBridge (real fetch)', () => {
       json: async () => ({ content: '---\ntitle: Post\n---\n\n# Body\n' }),
     });
     const b = createBridge(ctx);
-    const body = await b.loadFile();
-    expect(body).toBe('\n# Body\n'); // frontmatter 제거됨
-    await b.saveFile('\n# Body edited\n');
+    const { body, frontmatter } = await b.loadFile();
+    expect(body).toBe('\n# Body\n');
+    expect(frontmatter).toBe('title: Post');
+    await b.saveFile('\n# Body edited\n', 'title: Post');
     const saveCall = (globalThis.fetch as any).mock.calls.find(
       (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
     );
@@ -77,8 +79,7 @@ describe('createBridge (real fetch)', () => {
     });
     const b = createBridge(ctx);
     await b.loadFile();
-    // BlockNote가 직렬화 시 base(jsdom: http://localhost:3000/) 기준 절대 URL을 뱉은 상황
-    await b.saveFile('![alt](http://localhost:3000/images/foo.png)\n');
+    await b.saveFile('![alt](http://localhost:3000/images/foo.png)\n', '');
     const saveCall = (globalThis.fetch as any).mock.calls.find(
       (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
     );
@@ -98,23 +99,21 @@ describe('createBridge (real fetch)', () => {
     );
   });
 
-  it('peekFile은 storedFrontmatter/imageMap을 변경하지 않는다 (부작용 없음)', async () => {
+  it('frontmatter는 saveFile 호출자가 넘긴 값으로 기록되고 peekFile은 이에 영향 없음', async () => {
     const b = createBridge(ctx);
-    // 1) 최초 load: frontmatter F1 보관
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ content: '---\ntitle: F1\n---\n\n# Body\n' }),
     });
-    await b.loadFile();
-    // 2) peekFile: 디스크가 다른 frontmatter F2로 바뀐 상태를 들여다봄
+    const { frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('title: F1');
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ content: '---\ntitle: F2\n---\n\n# Body changed externally\n' }),
     });
     await b.peekFile();
-    // 3) save: peek이 storedFrontmatter를 오염시켰다면 F2가 붙는다. F1이어야 정상.
     (globalThis.fetch as any).mockResolvedValueOnce({ ok: true, json: async () => ({}) });
-    await b.saveFile('\n# Body\n');
+    await b.saveFile('\n# Body\n', frontmatter);
     const saveCall = (globalThis.fetch as any).mock.calls.find(
       (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
     );
@@ -200,5 +199,32 @@ describe('onThemeChange', () => {
     unsub();
     window.markora.applyTheme('light');
     expect(cb).not.toHaveBeenCalled();
+  });
+});
+
+describe('createMockBridge', () => {
+  it('loadFile은 mock 본문에서 frontmatter와 body를 분리한다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Hello\n', 'title: T');
+    const { body, frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('title: T');
+    expect(body).toBe('# Hello\n');
+  });
+
+  it('saveFile은 frontmatter를 펜스로 감싸 저장하고 peekFile은 body만 반환한다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Body\n', 'title: T');
+    const peeked = await b.peekFile();
+    expect(peeked).toBe('# Body\n');
+    const { frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('title: T');
+  });
+
+  it('frontmatter가 비면 저장 시 frontmatter가 삭제된다', async () => {
+    const b = createMockBridge();
+    await b.saveFile('# Body\n', '');
+    const { body, frontmatter } = await b.loadFile();
+    expect(frontmatter).toBe('');
+    expect(body).toBe('# Body\n');
   });
 });
