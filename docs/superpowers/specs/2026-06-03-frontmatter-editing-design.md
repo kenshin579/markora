@@ -65,21 +65,22 @@ frontmatter가 여전히 BlockNote를 거치지 않으므로 `blocksToMarkdownLo
 - 상태 추가: `const [frontmatter, setFrontmatter] = useState('')`.
 - 로드: `loadFile()`의 `{ body, frontmatter }`로 body는 BlockNote에, frontmatter는 state에 세팅.
 - 렌더: BlockNote 위에 `<FrontmatterPanel value={frontmatter} onChange={setFrontmatter} />`.
-- 자동저장 합류(A안): 현재 본문 변경에만 걸린 debounce 자동저장 effect의 의존성에 `frontmatter`를 추가. YAML 타이핑도 본문 편집과 동일하게 잠시 후 자동저장.
+- 자동저장 합류(A안): 현재 저장 로직은 `editor.onChange` 콜백 안에 인라인돼 있다. 이를 재사용 가능한 `scheduleSave()`로 추출해, `editor.onChange`(본문 변경)와 패널의 `onChange`(frontmatter 변경) **양쪽이 같은 debounce 저장**을 호출하게 한다.
+- frontmatter 최신값 참조: debounce 타이머(1초 뒤 실행)가 stale 클로저를 잡지 않도록 `frontmatterRef`(ref)에 최신 frontmatter를 보관하고, 저장 시 `saveFile(body, frontmatterRef.current)`로 전달.
 - 저장 호출: `saveFile(body, frontmatter)`. body는 기존대로 `blocksToMarkdownLossy` + `preSerialize` + 이미지 경로 복원을 거치고, frontmatter는 그 위에 펜스로 합쳐진다.
-- `lastKnownContentRef` 동기화: 저장 가드가 비교 기준으로 쓰는 "마지막 알려진 전체 내용"이 frontmatter까지 포함하도록 갱신. (안 그러면 frontmatter만 바꿨을 때 가드가 오작동)
+- 외부 변경 reload: `loadFile()`이 `{ body, frontmatter }`를 돌려주므로, body가 동일하더라도 frontmatter가 외부에서 바뀌었으면 패널 state를 갱신한다.
 
-본문 편집 경험은 그대로 두고 frontmatter만 같은 흐름에 얹는다.
+본문 편집 경험은 그대로 두고 frontmatter만 같은 흐름에 얹는다. `lastKnownContentRef`는 지금처럼 **body만** 담는다(가드 비교 대상이 body이므로 — 섹션 4 참조).
 
 ### 4. 저장 가드 조정 — `markdown/saveGuard.ts` (+테스트)
 
 현재 `checkSaveSafety()`의 레이어 1은 "이전엔 frontmatter가 있었는데 다음엔 없으면 → 저장 차단"이다. 이는 BlockNote가 frontmatter를 몰래 삼키는 사고를 막기 위한 것이었다.
 
-이번 변경으로 frontmatter는 BlockNote를 거치지 않고 **패널의 명시적 사용자 입력으로만** 사라진다. 즉 "frontmatter 없어짐 = 사용자가 의도적으로 비움".
+**중요한 사실:** 현재 아키텍처에서 frontmatter는 load 시점에 이미 떼어진 뒤 BlockNote로 들어가고, 가드에 전달되는 `previous`/`next`/`disk`는 **모두 body**다(frontmatter는 가드를 거치지 않고 `saveFile`에서 합쳐짐). 따라서 레이어 1의 `hasFrontmatter(previous)`는 **결코 참이 될 수 없는 죽은 코드**다. 이번 변경에서도 frontmatter는 패널에서만 다뤄지고 가드는 계속 body만 본다.
 
-- 레이어 1(frontmatter 소실 차단) **제거**. frontmatter 삭제는 정당한 사용자 행위(비우면 삭제).
-- 레이어 2(외부 편집 클로버 감지)·레이어 3(본문 대량 손실 감지)은 **유지** — 본문 보호 목적이라 여전히 유효.
-- 레이어 2/3의 비교 대상을 **body끼리만** 비교하도록 한정. frontmatter를 포함한 전체 텍스트를 비교하면 frontmatter만 크게 바꿔도 레이어 3(50%+ 손실)이 오발동할 수 있음.
+- 레이어 1(frontmatter 소실 차단) **제거** — 죽은 코드 정리. 더불어 `hasFrontmatter`/`FRONTMATTER_RE`도 saveGuard에서 제거(다른 사용처 없음).
+- 레이어 2(외부 편집 클로버 감지)·레이어 3(본문 대량 손실 감지)은 **그대로 유지** — 본문 보호 목적이라 여전히 유효.
+- 비교 대상은 이미 body끼리이므로 **추가 변경 없음**. (frontmatter를 가드에 섞지 않는 것이 곧 안전장치다.)
 
 #### 테스트 (Vitest)
 
@@ -91,12 +92,13 @@ frontmatter가 여전히 BlockNote를 거치지 않으므로 `blocksToMarkdownLo
 
 | # | 파일 | 내용 |
 |---|------|------|
-| 1 | `bridge/markora.ts`, `bridge/transform.ts` | `storedFrontmatter` 전역 제거, `loadFile()→{body,frontmatter}`, `saveFile(body,frontmatter)`, 펜스 직렬화 / 빈값=삭제 규칙 |
-| 2 | `editor/FrontmatterPanel.tsx` (신규) | 접이식 raw YAML textarea, 컨트롤드, 빈 파일엔 "+ Add frontmatter" |
-| 3 | `editor/Editor.tsx` | frontmatter state, 패널 렌더, 자동저장 의존성 합류, `lastKnownContentRef` 동기화 |
-| 4 | `markdown/saveGuard.ts` (+테스트) | 레이어1 제거, 레이어2/3는 body 기준 비교로 한정 |
+| 1 | `bridge/transform.ts` (+테스트) | `splitFrontmatter`가 inner YAML 반환, `joinFrontmatter`가 펜스로 감쌈 / 빈값=삭제, LF 정규화 |
+| 2 | `types.ts`, `bridge/markora.ts` (+테스트) | `storedFrontmatter` 전역 제거, `loadFile()→{body,frontmatter}`, `saveFile(body,frontmatter)`, mock 동일 |
+| 3 | `editor/FrontmatterPanel.tsx` (신규, +테스트) | 접이식 raw YAML textarea, 컨트롤드, 빈 파일엔 "+ Add frontmatter" |
+| 4 | `editor/Editor.tsx`, `styles.css` | frontmatter state/ref, 패널 렌더, `scheduleSave()` 추출 후 양쪽 onChange가 호출, reload 동기화 |
+| 5 | `markdown/saveGuard.ts` (+테스트) | 죽은 레이어1 + `hasFrontmatter` 제거. 레이어2/3 유지 |
 
 ## 위험 요소
 
-- **round-trip 충실도**: 닫는 `---` 뒤 빈 줄, BOM, CRLF 보존. `splitFrontmatter`/직렬화 헬퍼에서 일관되게 처리하고 테스트로 고정한다.
-- **저장 가드 회귀**: 레이어 1 제거가 본문 보호를 약화시키지 않도록, 비교 대상을 body로 명확히 분리하고 회귀 테스트를 추가한다.
+- **round-trip 정규화**: 패널을 거친 frontmatter는 LF로 정규화되고 BOM은 제거된다(펜스 안 inner YAML만 보관하므로). body는 기존대로 BlockNote가 정규화한다. 이는 의도된 동작이며 transform 테스트로 고정한다(기존 BOM/CRLF 테스트의 기대값을 새 동작으로 갱신).
+- **저장 가드 회귀**: 레이어 1은 죽은 코드라 제거해도 본문 보호(레이어 2/3)에 영향이 없다. 기존 가드 테스트 중 레이어 1 관련 케이스만 제거하고 나머지 회귀 테스트는 유지한다.
