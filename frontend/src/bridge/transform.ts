@@ -7,6 +7,9 @@
 
 // 문서 맨 앞(BOM 허용)의 `---\n ... \n---\n` 블록만 frontmatter로 인정.
 // 캡처 그룹 1 = 펜스 사이 inner YAML. 본문 중간의 --- 구분선은 매칭되지 않는다.
+// 알려진 한계: YAML block scalar 내에 bare `---` 줄이 있거나, 빈 줄 없이
+// `---\n---\n`(zero-line block)로 시작하는 문서는 frontmatter로 인식되지 않는다 —
+// 정규식 기반 파싱의 허용된 제한 사항이다.
 const FRONTMATTER_RE = /^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n/;
 
 export interface SplitResult {
@@ -20,6 +23,10 @@ export function splitFrontmatter(md: string): SplitResult {
   return { frontmatter: m[1], body: md.slice(m[0].length) };
 }
 
+/**
+ * inner YAML(펜스/BOM 없음)을 받아 `---\n…\n---\n`로 재조립한다.
+ * 비거나 공백뿐이면 body만 반환(= frontmatter 삭제). inner는 trim 후 사용.
+ */
 export function joinFrontmatter(frontmatter: string, body: string): string {
   const inner = frontmatter.trim();
   if (inner === '') return body;

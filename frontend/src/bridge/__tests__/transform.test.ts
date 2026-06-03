@@ -36,6 +36,13 @@ describe('splitFrontmatter', () => {
     expect(frontmatter).toBe('title: X');
     expect(body).toBe('body\r\n');
   });
+
+  it('빈 줄 하나뿐인 frontmatter 블록(---\\n\\n---\\n)도 인식하고 inner는 빈 문자열', () => {
+    const md = '---\n\n---\nbody\n';
+    const { frontmatter, body } = splitFrontmatter(md);
+    expect(frontmatter).toBe('');
+    expect(body).toBe('body\n');
+  });
 });
 
 describe('joinFrontmatter', () => {
@@ -55,5 +62,11 @@ describe('joinFrontmatter', () => {
     const md = '---\ntitle: Post\n---\n\n# Body\n\ntext\n';
     const { frontmatter, body } = splitFrontmatter(md);
     expect(joinFrontmatter(frontmatter, body)).toBe(md);
+  });
+
+  it('CRLF 라운드트립: 펜스는 LF로 정규화, 본문 CRLF는 유지', () => {
+    const md = '---\r\ntitle: X\r\n---\r\nbody\r\n';
+    const { frontmatter, body } = splitFrontmatter(md);
+    expect(joinFrontmatter(frontmatter, body)).toBe('---\ntitle: X\n---\nbody\r\n');
   });
 });
