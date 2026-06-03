@@ -13,9 +13,6 @@ export function parseQueryContext(href: string): BridgeContext {
 export function createBridge(ctx: BridgeContext): MarkoraBridge {
   const themeListeners = new Set<(t: Theme) => void>();
   const reloadListeners = new Set<() => void>();
-  // 로드 시 떼어낸 frontmatter를 보관했다가 저장 시 그대로 다시 붙인다.
-  // (frontmatter는 BlockNote를 거치지 않으므로 손상되지 않는다)
-  let storedFrontmatter = '';
   // (BlockNote가 재작성한 절대 이미지 URL → 원본 경로) 매핑. 저장 시 역변환에 사용.
   const imageMap = new Map<string, string>();
 
@@ -41,13 +38,12 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       if (!res.ok) throw new Error(`loadFile failed: ${res.status}`);
       const data = await res.json();
       const { frontmatter, body } = splitFrontmatter(data.content ?? '');
-      storedFrontmatter = frontmatter;
       // 본문의 상대경로 이미지를 BlockNote가 재작성할 절대 URL로 미리 매핑해 둔다.
       const baseUri = typeof document !== 'undefined' ? document.baseURI : ctx.serverUrl;
       for (const [abs, original] of collectImageUrlMap(body, baseUri)) {
         imageMap.set(abs, original);
       }
-      return body;
+      return { body, frontmatter };
     },
 
     // loadFile과 달리 storedFrontmatter/imageMap을 건드리지 않고 디스크 본문만 반환.
@@ -62,9 +58,9 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       return body;
     },
 
-    async saveFile(markdown: string) {
-      const restored = restoreImagePaths(markdown, imageMap);
-      const content = joinFrontmatter(storedFrontmatter, restored);
+    async saveFile(body: string, frontmatter: string) {
+      const restored = restoreImagePaths(body, imageMap);
+      const content = joinFrontmatter(frontmatter, restored);
       const res = await fetch(`${ctx.serverUrl}api/file/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,9 +118,18 @@ export function createMockBridge(): MarkoraBridge {
   }
   return {
     getContext: () => ({ filePath: '/dev/mock.md', serverUrl: 'http://localhost:5173/', initialTheme: 'light' }),
-    async loadFile() { return storedMd; },
-    async peekFile() { return storedMd; },
-    async saveFile(md: string) { storedMd = md; console.log('[mock] saved', md.length, 'bytes'); },
+    async loadFile() {
+      const { body, frontmatter } = splitFrontmatter(storedMd);
+      return { body, frontmatter };
+    },
+    async peekFile() {
+      const { body } = splitFrontmatter(storedMd);
+      return body;
+    },
+    async saveFile(body: string, frontmatter: string) {
+      storedMd = joinFrontmatter(frontmatter, body);
+      console.log('[mock] saved', storedMd.length, 'bytes');
+    },
     async uploadImage(file: File) { return { url: URL.createObjectURL(file) }; },
     onThemeChange(cb) { themeListeners.add(cb); return () => themeListeners.delete(cb); },
     onReloadRequest(cb) { reloadListeners.add(cb); return () => reloadListeners.delete(cb); },
