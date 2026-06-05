@@ -44,13 +44,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 [data-mantine-color-scheme="dark"] .markora-error-actions button { background: #2b2d30; color: #f0d780; border-color: #8a6d00; }
 
 /* The render block is a flex item of .bn-block-content (a row flex), so by
- * default (flex:0 1 auto) it shrinks to the diagram's content width and the
- * SVG never gets the chance to fill the editor. flex:1 makes it grow to the
- * full block width; the svg rule then overrides mermaid's inline
- * `max-width:<naturalWidth>px` cap and caps the diagram at 60% of the editor
- * width (centered) so it scales up without dominating the page. */
+ * default (flex:0 1 auto) it shrinks to the diagram's content width. flex:1
+ * makes it grow to the full block width so the diagram can be centered.
+ *
+ * DO NOT set width or max-width on the svg. mermaid (useMaxWidth:true) already
+ * emits width="100%" + inline `style="max-width:<naturalWidth>px"`, which makes
+ * small diagrams stop at their natural size and only shrinks diagrams wider than
+ * the editor. Any width:100% / max-width:<n>% rule here OVERRIDES that natural cap
+ * (a % max-width beats mermaid's inline px cap) and upscales small/vertical
+ * (graph TD) diagrams to fill the editor — verified: a 420px-wide diagram blew up
+ * to 586px (max-width:60%) / 976px (max-width:100% + width:auto). Leaving the svg
+ * alone renders it at 420px (natural) and shrinks a 1497px-wide one to fit. */
 .markora-mermaid-render { flex: 1; padding: 12px; cursor: pointer; text-align: center; }
-.markora-mermaid-render svg { max-width: 60% !important; width: 100%; height: auto; }
+.markora-mermaid-render svg { height: auto; }
 .markora-mermaid-edit { flex: 1; }
 .markora-mermaid-edit textarea { width: 100%; font-family: ui-monospace, monospace; padding: 8px; box-sizing: border-box; }
 
