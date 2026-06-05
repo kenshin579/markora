@@ -1,6 +1,6 @@
 import type { BridgeContext, MarkoraBridge, Theme, UploadResult } from '../types';
 import { splitFrontmatter, joinFrontmatter } from './transform';
-import { collectImageUrlMap, restoreImagePaths } from './imageMap';
+import { rewriteImagePathsForDisplay, restoreImagePaths } from './imageMap';
 
 export function parseQueryContext(href: string): BridgeContext {
   const url = new URL(href);
@@ -38,12 +38,16 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       if (!res.ok) throw new Error(`loadFile failed: ${res.status}`);
       const data = await res.json();
       const { frontmatter, body } = splitFrontmatter(data.content ?? '');
-      // 본문의 상대경로 이미지를 BlockNote가 재작성할 절대 URL로 미리 매핑해 둔다.
-      const baseUri = typeof document !== 'undefined' ? document.baseURI : ctx.serverUrl;
-      for (const [abs, original] of collectImageUrlMap(body, baseUri)) {
-        imageMap.set(abs, original);
+      // 본문의 상대경로 이미지를 디스크에서 서빙되는 local-image URL로 재작성한다.
+      // (그래야 BlockNote <img>가 실제 파일을 가리켜 렌더링됨) 동시에 저장 시 원본
+      // 상대경로로 되돌리기 위한 매핑을 등록한다.
+      const normalized = ctx.filePath.replace(/\\/g, '/');
+      const mdDir = normalized.substring(0, normalized.lastIndexOf('/'));
+      const { body: rewritten, map } = rewriteImagePathsForDisplay(body, mdDir, ctx.serverUrl);
+      for (const [url, original] of map) {
+        imageMap.set(url, original);
       }
-      return { body, frontmatter };
+      return { body: rewritten, frontmatter };
     },
 
     // loadFile과 달리 imageMap을 건드리지 않고 디스크 본문만 반환.

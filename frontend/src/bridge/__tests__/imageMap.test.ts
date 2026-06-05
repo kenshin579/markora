@@ -1,36 +1,60 @@
 import { describe, it, expect } from 'vitest';
-import { collectImageUrlMap, restoreImagePaths } from '../imageMap';
+import { rewriteImagePathsForDisplay, restoreImagePaths } from '../imageMap';
 
-const BASE = 'http://localhost:63342/markora/';
+const SERVER = 'http://localhost:63342/markora/';
+const DIR = '/Users/me/doc';
 
-describe('collectImageUrlMap', () => {
-  it('상대경로 이미지를 base 기준 절대 URL로 매핑 (절대→원본)', () => {
-    const md = '![alt](images/foo.png)\n\ntext\n';
-    const map = collectImageUrlMap(md, BASE);
-    expect(map.get('http://localhost:63342/markora/images/foo.png')).toBe('images/foo.png');
+describe('rewriteImagePathsForDisplay', () => {
+  it('상대경로 이미지를 local-image API URL로 재작성하고 (URL→원본) 매핑을 만든다', () => {
+    const { body, map } = rewriteImagePathsForDisplay(
+      '![alt](images/foo.png)\n\ntext\n',
+      DIR,
+      SERVER,
+    );
+    const url =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/doc/images/foo.png');
+    expect(body).toBe(`![alt](${url})\n\ntext\n`);
+    expect(map.get(url)).toBe('images/foo.png');
   });
 
-  it('./ 와 ../ 상대경로도 매핑', () => {
-    const md = '![a](./a.png) ![b](../b.png)';
-    const map = collectImageUrlMap(md, BASE);
-    expect(map.get('http://localhost:63342/markora/a.png')).toBe('./a.png');
-    expect(map.get('http://localhost:63342/b.png')).toBe('../b.png');
+  it('./ 와 ../ 상대경로를 디스크 절대경로로 해석', () => {
+    const { map } = rewriteImagePathsForDisplay('![a](./_assets/a.png) ![b](../b.png)', DIR, SERVER);
+    const urlA =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/doc/_assets/a.png');
+    const urlB =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/b.png');
+    expect(map.get(urlA)).toBe('./_assets/a.png');
+    expect(map.get(urlB)).toBe('../b.png');
   });
 
-  it('이미 절대 URL(http/https)인 이미지는 매핑하지 않는다', () => {
-    const md = '![x](https://example.com/x.png)';
-    const map = collectImageUrlMap(md, BASE);
+  it('이미 절대 URL(http/https)이나 data URL은 재작성하지 않는다', () => {
+    const md = '![x](https://example.com/x.png) ![y](data:image/png;base64,AAAA)';
+    const { body, map } = rewriteImagePathsForDisplay(md, DIR, SERVER);
+    expect(body).toBe(md);
     expect(map.size).toBe(0);
   });
 
-  it('타이틀이 있어도 경로만 추출', () => {
-    const md = '![a](images/foo.png "caption")';
-    const map = collectImageUrlMap(md, BASE);
-    expect(map.get('http://localhost:63342/markora/images/foo.png')).toBe('images/foo.png');
+  it('타이틀은 보존하면서 경로만 재작성', () => {
+    const { body } = rewriteImagePathsForDisplay('![a](images/foo.png "caption")', DIR, SERVER);
+    const url =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/doc/images/foo.png');
+    expect(body).toBe(`![a](${url} "caption")`);
   });
 
-  it('이미지가 없으면 빈 맵', () => {
-    expect(collectImageUrlMap('# no images', BASE).size).toBe(0);
+  it('이미지가 없으면 원본 그대로, 빈 맵', () => {
+    const { body, map } = rewriteImagePathsForDisplay('# no images', DIR, SERVER);
+    expect(body).toBe('# no images');
+    expect(map.size).toBe(0);
+  });
+
+  it('재작성 후 저장 시 원본 상대경로로 복원된다 (라운드트립)', () => {
+    const original = '![alt](./_assets/a.png "cap")\n';
+    const { body, map } = rewriteImagePathsForDisplay(original, DIR, SERVER);
+    expect(restoreImagePaths(body, map)).toBe(original);
   });
 });
 
