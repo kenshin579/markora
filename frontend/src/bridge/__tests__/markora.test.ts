@@ -72,14 +72,28 @@ describe('createBridge (real fetch)', () => {
     expect(JSON.parse(saveCall[1].body).content).toBe('---\ntitle: Post\n---\n\n# Body edited\n');
   });
 
-  it('로드한 상대경로 이미지는 저장 시 절대 URL이 아닌 원본 상대경로로 기록된다', async () => {
+  it('로드 시 상대경로 이미지를 local-image URL로 재작성한다', async () => {
     (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({ content: '![alt](images/foo.png)\n' }),
     });
     const b = createBridge(ctx);
-    await b.loadFile();
-    await b.saveFile('![alt](http://localhost:3000/images/foo.png)\n', '');
+    const { body } = await b.loadFile();
+    const url =
+      'http://localhost:9000/api/local-image?path=' +
+      encodeURIComponent('/tmp/images/foo.png');
+    expect(body).toBe(`![alt](${url})\n`);
+  });
+
+  it('로드한 상대경로 이미지는 저장 시 local-image URL이 아닌 원본 상대경로로 기록된다', async () => {
+    (globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: '![alt](images/foo.png)\n' }),
+    });
+    const b = createBridge(ctx);
+    // 로드가 반환한 본문(= BlockNote가 그대로 직렬화할 내용)을 그대로 저장한다.
+    const { body } = await b.loadFile();
+    await b.saveFile(body, '');
     const saveCall = (globalThis.fetch as any).mock.calls.find(
       (c: any[]) => c[0] === 'http://localhost:9000/api/file/save'
     );
