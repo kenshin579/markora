@@ -3,8 +3,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { FrontmatterPanel } from '../FrontmatterPanel';
 
 describe('FrontmatterPanel', () => {
-  it('frontmatter가 있으면 펼쳐진 채로 textarea에 inner YAML 표시', () => {
+  it('frontmatter가 있어도 접혀 있어 textarea가 보이지 않고 캐럿/헤더만 보인다', () => {
     render(<FrontmatterPanel value={'title: Post\ntags: [a]'} onChange={() => {}} />);
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('button', { name: /^frontmatter$/i })).toBeTruthy();
+  });
+
+  it('접힌 상태에서 헤더 클릭으로 펼치면 textarea에 inner YAML이 보인다', () => {
+    render(<FrontmatterPanel value={'title: Post\ntags: [a]'} onChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /^frontmatter$/i }));
     const ta = screen.getByRole('textbox') as HTMLTextAreaElement;
     expect(ta.value).toBe('title: Post\ntags: [a]');
   });
@@ -18,6 +25,7 @@ describe('FrontmatterPanel', () => {
   it('편집 시 onChange가 새 값으로 호출된다', () => {
     const onChange = vi.fn();
     render(<FrontmatterPanel value={'title: A'} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /^frontmatter$/i }));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'title: B' } });
     expect(onChange).toHaveBeenCalledWith('title: B');
   });

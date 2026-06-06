@@ -9,16 +9,10 @@ interface Props {
 // 상태는 부모(Editor)가 소유하는 컨트롤드 컴포넌트다.
 export function FrontmatterPanel({ value, onChange }: Props) {
   const hasContent = value.trim() !== '';
+  // 로드된 frontmatter는 접힌 채(▸)로 시작한다. 펼침/접힘은 전적으로 사용자가 제어.
+  // (+ Add frontmatter로 새로 추가할 때는 토글 클릭 자체가 setOpen(true)를 태운다.)
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  // 파일 로드로 frontmatter가 처음 들어오면 한 번 펼친다. 이후엔 사용자가 토글을 제어.
-  const initializedRef = useRef(false);
-  useEffect(() => {
-    if (!initializedRef.current && value.trim() !== '') {
-      setOpen(true);
-      initializedRef.current = true;
-    }
-  }, [value]);
 
   // 6-dot 메뉴: 바깥 클릭 / Esc 로 닫는다.
   const menuWrapRef = useRef<HTMLDivElement>(null);
