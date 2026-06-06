@@ -58,6 +58,76 @@ describe('rewriteImagePathsForDisplay', () => {
   });
 });
 
+describe('rewriteImagePathsForDisplay — HTML <img> 태그', () => {
+  it('상대경로 <img>를 markdown 이미지로 변환하고 htmlMap에 원본 태그를 보관', () => {
+    const tag = '<img src="cover.png" alt="cover" width="75%" />';
+    const { body, htmlMap } = rewriteImagePathsForDisplay(tag, DIR, SERVER);
+    const url =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/doc/cover.png');
+    expect(body).toBe(`![cover](${url})`);
+    expect(htmlMap.get(url)).toBe(tag);
+  });
+
+  it('./ 와 ../ 상대경로 <img>도 디스크 절대경로로 해석', () => {
+    const { htmlMap } = rewriteImagePathsForDisplay(
+      `<img src="./_assets/a.png"> <img src='../b.png'>`,
+      DIR,
+      SERVER,
+    );
+    const urlA =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/doc/_assets/a.png');
+    const urlB =
+      'http://localhost:63342/markora/api/local-image?path=' +
+      encodeURIComponent('/Users/me/b.png');
+    expect(htmlMap.get(urlA)).toBe('<img src="./_assets/a.png">');
+    expect(htmlMap.get(urlB)).toBe(`<img src='../b.png'>`);
+  });
+
+  it('원격/데이터 URL <img>도 렌더되도록 markdown으로 변환(URL은 그대로)하고 태그 보관', () => {
+    const tag = '<img src="https://cdn.example.com/x.png" alt="x">';
+    const { body, htmlMap } = rewriteImagePathsForDisplay(tag, DIR, SERVER);
+    expect(body).toBe('![x](https://cdn.example.com/x.png)');
+    expect(htmlMap.get('https://cdn.example.com/x.png')).toBe(tag);
+  });
+
+  it('src 없는 <img>는 변환하지 않는다', () => {
+    const tag = '<img alt="no src">';
+    const { body, htmlMap } = rewriteImagePathsForDisplay(tag, DIR, SERVER);
+    expect(body).toBe(tag);
+    expect(htmlMap.size).toBe(0);
+  });
+});
+
+describe('restoreImagePaths — HTML <img> 복원', () => {
+  it('htmlMap에 있는 URL은 markdown 이미지 전체를 원본 <img> 태그로 되돌린다(width 무손실)', () => {
+    const tag = '<img src="cover.png" alt="cover" width="75%" />';
+    const url = 'http://localhost:63342/markora/api/local-image?path=%2Fp%2Fcover.png';
+    const htmlMap = new Map([[url, tag]]);
+    expect(restoreImagePaths(`![cover](${url})`, new Map(), htmlMap)).toBe(tag);
+  });
+
+  it('BlockNote가 alt를 바꿔도 URL만 같으면 원본 <img> 태그로 복원', () => {
+    const tag = '<img src="cover.png" width="75%" />';
+    const url = 'http://localhost:63342/markora/api/local-image?path=%2Fp%2Fcover.png';
+    const htmlMap = new Map([[url, tag]]);
+    expect(restoreImagePaths(`![EDITED CAPTION](${url})`, new Map(), htmlMap)).toBe(tag);
+  });
+
+  it('<img> 라운드트립: rewrite → restore === 원본', () => {
+    const original = '문단\n\n<img src="cover.png" alt="cover" width="75%" />\n\n끝\n';
+    const { body, map, htmlMap } = rewriteImagePathsForDisplay(original, DIR, SERVER);
+    expect(restoreImagePaths(body, map, htmlMap)).toBe(original);
+  });
+
+  it('markdown 이미지와 HTML <img>가 섞여도 각각 올바르게 복원', () => {
+    const original = '![md](./a.png)\n\n<img src="b.png" width="50%" />\n';
+    const { body, map, htmlMap } = rewriteImagePathsForDisplay(original, DIR, SERVER);
+    expect(restoreImagePaths(body, map, htmlMap)).toBe(original);
+  });
+});
+
 describe('restoreImagePaths', () => {
   it('직렬화된 절대 URL을 원본 상대경로로 되돌린다', () => {
     const map = new Map([['http://localhost:63342/markora/images/foo.png', 'images/foo.png']]);
