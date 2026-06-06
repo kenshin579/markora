@@ -44,6 +44,13 @@ intellijPlatform {
             untilBuild = provider { null }
         }
     }
+
+    // 마켓플레이스 업로드는 publishPlugin 태스크가 담당한다.
+    // 토큰은 CI 환경변수 JETBRAINS_PUBLISH_TOKEN으로 주입(GitHub Secret).
+    // channels 미지정 → 기본(Stable), 서명 미설정 → unsigned 업로드(기존 수동 방식과 동일).
+    publishing {
+        token = providers.environmentVariable("JETBRAINS_PUBLISH_TOKEN")
+    }
 }
 
 node {

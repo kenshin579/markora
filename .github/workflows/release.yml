@@ -36,3 +36,8 @@ jobs:
         with:
           files: build/distributions/*.zip
           generate_release_notes: true
+
+      - name: Publish to JetBrains Marketplace
+        run: ./gradlew publishPlugin
+        env:
+          JETBRAINS_PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
