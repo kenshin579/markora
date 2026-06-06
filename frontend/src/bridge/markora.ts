@@ -15,6 +15,9 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
   const reloadListeners = new Set<() => void>();
   // (BlockNote가 재작성한 절대 이미지 URL → 원본 경로) 매핑. 저장 시 역변환에 사용.
   const imageMap = new Map<string, string>();
+  // (local-image URL → 원본 HTML <img> 태그 전체) 매핑. 저장 시 markdown 이미지를
+  // 원본 <img>로 되돌려 width 등 속성을 무손실 보존한다.
+  const htmlImageMap = new Map<string, string>();
 
   // Window-level callback Kotlin이 호출
   if (typeof window !== 'undefined') {
@@ -43,9 +46,12 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
       // 상대경로로 되돌리기 위한 매핑을 등록한다.
       const normalized = ctx.filePath.replace(/\\/g, '/');
       const mdDir = normalized.substring(0, normalized.lastIndexOf('/'));
-      const { body: rewritten, map } = rewriteImagePathsForDisplay(body, mdDir, ctx.serverUrl);
+      const { body: rewritten, map, htmlMap } = rewriteImagePathsForDisplay(body, mdDir, ctx.serverUrl);
       for (const [url, original] of map) {
         imageMap.set(url, original);
+      }
+      for (const [url, tag] of htmlMap) {
+        htmlImageMap.set(url, tag);
       }
       return { body: rewritten, frontmatter };
     },
@@ -63,7 +69,7 @@ export function createBridge(ctx: BridgeContext): MarkoraBridge {
     },
 
     async saveFile(body: string, frontmatter: string) {
-      const restored = restoreImagePaths(body, imageMap);
+      const restored = restoreImagePaths(body, imageMap, htmlImageMap);
       const content = joinFrontmatter(frontmatter, restored);
       const res = await fetch(`${ctx.serverUrl}api/file/save`, {
         method: 'POST',
