@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BlockNoteEditor } from '@blocknote/core';
 import { schema } from '../../editor/schema';
-import { splitRuns, stripQuotePrefix, parseMarkdownWithBlockquotes } from '../blockquote';
+import {
+  splitRuns, stripQuotePrefix, parseMarkdownWithBlockquotes,
+  serializeBlocksWithBlockquotes,
+} from '../blockquote';
 
 describe('splitRuns', () => {
   it('blockquote 줄과 일반 줄을 연속 구간으로 분리', () => {
@@ -75,5 +78,38 @@ describe('parseMarkdownWithBlockquotes', () => {
     const blocks: any = await parseMarkdownWithBlockquotes(editor, '# T\n\n- a\n- b');
     expect(blocks.map((b: any) => b.type))
       .toEqual(['heading', 'bulletListItem', 'bulletListItem']);
+  });
+});
+
+describe('serializeBlocksWithBlockquotes', () => {
+  it('quote + children 를 > 접두사 붙은 리스트로 직렬화', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = [{
+      type: 'quote',
+      props: { backgroundColor: 'default', textColor: 'default' },
+      content: [{ type: 'text', text: '링크', styles: {} }],
+      children: [
+        { type: 'bulletListItem', content: [{ type: 'text', text: 'a', styles: {} }] },
+        { type: 'bulletListItem', content: [{ type: 'text', text: 'b', styles: {} }] },
+      ],
+    }];
+    const md = await serializeBlocksWithBlockquotes(editor, blocks);
+    expect(md).toContain('> 링크');
+    expect(md).toContain('> * a');
+    expect(md).toContain('> * b');
+    // 리스트 줄이 blockquote 밖으로 탈출하지 않는다
+    expect(md).not.toMatch(/^\* a/m);
+  });
+
+  it('children 없는 일반 quote 는 기존처럼 직렬화', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = [{
+      type: 'quote',
+      props: { backgroundColor: 'default', textColor: 'default' },
+      content: [{ type: 'text', text: 'hello', styles: {} }],
+      children: [],
+    }];
+    const md = await serializeBlocksWithBlockquotes(editor, blocks);
+    expect(md.trim()).toBe('> hello');
   });
 });

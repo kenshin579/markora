@@ -73,3 +73,48 @@ export async function parseMarkdownWithBlockquotes(
   }
   return out;
 }
+
+// 단일 quote 블록을 직렬화한다. lead(선행 단락)와 children(리스트)를 각각 BlockNote로
+// 직렬화한 뒤 children 모든 줄에 '> ' 접두사를 다시 입혀 합친다.
+async function serializeQuote(
+  editor: BlockNoteEditor<any, any, any>,
+  quote: AnyBlock,
+): Promise<string> {
+  const children = quote.children ?? [];
+  const hasContent = Array.isArray(quote.content) && quote.content.length > 0;
+  const lead = hasContent
+    ? (await editor.blocksToMarkdownLossy([{ ...quote, children: [] }] as any)).trimEnd()
+    : '';
+  if (children.length === 0) return lead || '>';
+  const childMd = (await editor.blocksToMarkdownLossy(children as any)).trimEnd();
+  const prefixed = childMd
+    .split('\n')
+    .map(l => (l.length ? `> ${l}` : '>'))
+    .join('\n');
+  return lead ? `${lead}\n>\n${prefixed}` : prefixed;
+}
+
+// 블록 트리를 마크다운으로 직렬화하되 quote 블록만 '>' 접두사 복원을 거친다.
+// 인접한 비-quote 블록은 묶어서 한 번에 BlockNote로 직렬화한다.
+export async function serializeBlocksWithBlockquotes(
+  editor: BlockNoteEditor<any, any, any>,
+  blocks: AnyBlock[],
+): Promise<string> {
+  const parts: string[] = [];
+  let buffer: AnyBlock[] = [];
+  const flush = async () => {
+    if (buffer.length === 0) return;
+    parts.push((await editor.blocksToMarkdownLossy(buffer as any)).trimEnd());
+    buffer = [];
+  };
+  for (const block of blocks) {
+    if (block.type === 'quote') {
+      await flush();
+      parts.push(await serializeQuote(editor, block));
+    } else {
+      buffer.push(block);
+    }
+  }
+  await flush();
+  return parts.join('\n\n') + '\n';
+}
