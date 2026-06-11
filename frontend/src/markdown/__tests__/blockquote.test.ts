@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitRuns } from '../blockquote';
+import { splitRuns, stripQuotePrefix } from '../blockquote';
 
 describe('splitRuns', () => {
   it('blockquote 줄과 일반 줄을 연속 구간으로 분리', () => {
@@ -20,5 +20,16 @@ describe('splitRuns', () => {
     expect(splitRuns(body)).toEqual([
       { kind: 'plain', text: '```\n> not a quote\n```' },
     ]);
+  });
+});
+
+describe('stripQuotePrefix', () => {
+  it('> 와 뒤따르는 공백 1개만 제거하고 들여쓰기는 보존', () => {
+    const text = '> - a\n>   - a1\n>';
+    expect(stripQuotePrefix(text)).toBe('- a\n  - a1\n');
+  });
+
+  it('> 없는 줄은 그대로', () => {
+    expect(stripQuotePrefix('plain')).toBe('plain');
   });
 });

@@ -23,3 +23,16 @@ export function splitRuns(body: string): Run[] {
   }
   return runs;
 }
+
+// 각 줄에서 blockquote 마커 1단계('>' + 공백 1개)만 제거한다.
+// 나머지 들여쓰기는 보존되어 중첩 리스트 구조가 유지된다.
+// '>' 단독 줄은 빈 줄이 된다. 중첩 blockquote('>>')는 1단계만 벗겨 내부 '>'가 남는다(의도적).
+export function stripQuotePrefix(text: string): string {
+  return text
+    .split('\n')
+    .map(line => {
+      const m = line.match(/^ {0,3}>( ?)(.*)$/);
+      return m ? m[2] : line;
+    })
+    .join('\n');
+}
