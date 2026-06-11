@@ -30,14 +30,14 @@ export function splitRuns(body: string): Run[] {
   return runs;
 }
 
-// 각 줄에서 blockquote 마커 1단계('>' + 공백 1개)만 제거한다.
+// 각 줄에서 blockquote 마커 1단계('>' + 공백 또는 탭 1개)만 제거한다.
 // 나머지 들여쓰기는 보존되어 중첩 리스트 구조가 유지된다.
 // '>' 단독 줄은 빈 줄이 된다. 중첩 blockquote('>>')는 1단계만 벗겨 내부 '>'가 남는다(의도적).
 export function stripQuotePrefix(text: string): string {
   return text
     .split('\n')
     .map(line => {
-      const m = line.match(/^ {0,3}>( ?)(.*)$/);
+      const m = line.match(/^ {0,3}>([ \t]?)(.*)$/);
       return m ? m[2] : line;
     })
     .join('\n');
@@ -60,7 +60,10 @@ export async function parseMarkdownWithBlockquotes(
   body: string,
 ): Promise<AnyBlock[]> {
   const out: AnyBlock[] = [];
-  for (const run of splitRuns(body)) {
+  // 에디터가 파일 원본 바이트를 그대로 넘기므로 CRLF/CR 줄바꿈을 LF 로 정규화한다.
+  // (정규화하지 않으면 stripQuotePrefix 의 '.' 가 \r 을 못 먹어 '>' 가 남는다)
+  const normalized = body.replace(/\r\n?/g, '\n');
+  for (const run of splitRuns(normalized)) {
     if (run.kind === 'plain') {
       if (run.text.trim() === '') continue; // 빈 분리 run은 빈 paragraph 주입을 피하려 건너뛴다
       const blocks = (await editor.tryParseMarkdownToBlocks(run.text)) as AnyBlock[];

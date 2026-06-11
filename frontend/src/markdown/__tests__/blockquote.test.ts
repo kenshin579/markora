@@ -38,6 +38,10 @@ describe('stripQuotePrefix', () => {
   it('> 없는 줄은 그대로', () => {
     expect(stripQuotePrefix('plain')).toBe('plain');
   });
+
+  it('> 뒤 탭 1개도 제거', () => {
+    expect(stripQuotePrefix('>\t- a')).toBe('- a');
+  });
 });
 
 describe('parseMarkdownWithBlockquotes', () => {
@@ -72,6 +76,27 @@ describe('parseMarkdownWithBlockquotes', () => {
     const top = blocks[0].children[0];
     expect(top.type).toBe('bulletListItem');
     expect(top.children[0].type).toBe('bulletListItem');
+  });
+
+  it('CRLF 줄바꿈도 LF 와 동일하게 quote + bullet children 로 파싱', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = await parseMarkdownWithBlockquotes(editor, '> - a\r\n> - b');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe('quote');
+    expect(blocks[0].children.map((c: any) => c.type))
+      .toEqual(['bulletListItem', 'bulletListItem']);
+  });
+
+  it('빈 줄로 구분된 두 quote 는 별개의 quote 블록', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = await parseMarkdownWithBlockquotes(editor, '> a\n\n> b');
+    expect(blocks.map((b: any) => b.type)).toEqual(['quote', 'quote']);
+  });
+
+  it('빈 입력은 빈 배열', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = await parseMarkdownWithBlockquotes(editor, '');
+    expect(blocks).toEqual([]);
   });
 
   it('blockquote 없는 문서는 BlockNote 기본 파싱과 동일하게 동작', async () => {
