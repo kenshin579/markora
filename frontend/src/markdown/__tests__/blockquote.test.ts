@@ -5,6 +5,7 @@ import {
   splitRuns, stripQuotePrefix, parseMarkdownWithBlockquotes,
   serializeBlocksWithBlockquotes,
 } from '../blockquote';
+import { postParse, preSerialize } from '../customParse';
 
 describe('splitRuns', () => {
   it('blockquote 줄과 일반 줄을 연속 구간으로 분리', () => {
@@ -111,5 +112,37 @@ describe('serializeBlocksWithBlockquotes', () => {
     }];
     const md = await serializeBlocksWithBlockquotes(editor, blocks);
     expect(md.trim()).toBe('> hello');
+  });
+});
+
+async function roundtrip(md: string): Promise<any[]> {
+  const editor = BlockNoteEditor.create({ schema });
+  const parsed = postParse(await parseMarkdownWithBlockquotes(editor, md) as any);
+  editor.replaceBlocks(editor.document, parsed as any);
+  const out = await serializeBlocksWithBlockquotes(editor, preSerialize(editor.document as any) as any);
+  // 두 번째 파싱
+  const editor2 = BlockNoteEditor.create({ schema });
+  return postParse(await parseMarkdownWithBlockquotes(editor2, out) as any) as any[];
+}
+
+describe('blockquote 라운드트립', () => {
+  it('선행 단락 + 리스트 구조가 md→blocks→md→blocks 후 보존', async () => {
+    const md = '> 링크\n>\n> - 범위\n> - 근거';
+    const blocks: any = await roundtrip(md);
+    expect(blocks[0].type).toBe('quote');
+    expect(blocks[0].content[0].text).toBe('링크');
+    expect(blocks[0].children.map((c: any) => c.type))
+      .toEqual(['bulletListItem', 'bulletListItem']);
+  });
+
+  it('중첩 리스트가 라운드트립 후 보존', async () => {
+    const blocks: any = await roundtrip('> - a\n>   - a1');
+    expect(blocks[0].children[0].children[0].type).toBe('bulletListItem');
+  });
+
+  it('코드펜스 내부 > 줄은 quote 로 변하지 않는다', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const blocks: any = await parseMarkdownWithBlockquotes(editor, '```\n> x\n```');
+    expect(blocks[0].type).toBe('codeBlock');
   });
 });
