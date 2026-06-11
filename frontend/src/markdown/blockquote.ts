@@ -1,4 +1,10 @@
+import type { BlockNoteEditor } from '@blocknote/core';
+
 export type Run = { kind: 'quote' | 'plain'; text: string };
+
+type AnyBlock = { type: string; props?: Record<string, any>; content?: any; children?: AnyBlock[] };
+
+const QUOTE_PROPS = { backgroundColor: 'default', textColor: 'default' } as const;
 
 const QUOTE_LINE_RE = /^ {0,3}>/;
 const FENCE_RE = /^ {0,3}(```|~~~)/;
@@ -35,4 +41,35 @@ export function stripQuotePrefix(text: string): string {
       return m ? m[2] : line;
     })
     .join('\n');
+}
+
+// 벗긴 내부 블록 배열을 단일 quote 블록으로 조립한다.
+function assembleQuote(innerBlocks: AnyBlock[]): AnyBlock {
+  let content: any[] = [];
+  let children: AnyBlock[] = innerBlocks;
+  if (innerBlocks.length > 0 && innerBlocks[0].type === 'paragraph') {
+    content = (innerBlocks[0].content as any[]) ?? [];
+    children = innerBlocks.slice(1);
+  }
+  return { type: 'quote', props: { ...QUOTE_PROPS }, content, children };
+}
+
+// 원문 마크다운을 파싱하되 blockquote 구간은 '>'를 벗겨 BlockNote에 재위임 후 quote로 조립한다.
+export async function parseMarkdownWithBlockquotes(
+  editor: BlockNoteEditor<any, any, any>,
+  body: string,
+): Promise<AnyBlock[]> {
+  const out: AnyBlock[] = [];
+  for (const run of splitRuns(body)) {
+    if (run.kind === 'plain') {
+      if (run.text.trim() === '') continue; // 빈 분리 run은 빈 paragraph 주입을 피하려 건너뛴다
+      const blocks = (await editor.tryParseMarkdownToBlocks(run.text)) as AnyBlock[];
+      out.push(...blocks);
+    } else {
+      const inner = stripQuotePrefix(run.text);
+      const innerBlocks = (await editor.tryParseMarkdownToBlocks(inner)) as AnyBlock[];
+      out.push(assembleQuote(innerBlocks));
+    }
+  }
+  return out;
 }
