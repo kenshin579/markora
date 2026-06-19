@@ -9,7 +9,7 @@ import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.*
-import java.nio.charset.StandardCharsets
+import org.jetbrains.ide.RestService
 
 object MarkdownFileController {
 
@@ -68,26 +68,36 @@ object MarkdownFileController {
     }
 
     private fun handleSave(request: FullHttpRequest, context: ChannelHandlerContext): Boolean {
-        val body = request.content().toString(StandardCharsets.UTF_8)
-
-        // Simple JSON parsing for {"path":"...","content":"..."}
-        val pathMatch = """"path"\s*:\s*"([^"]*?)"""".toRegex().find(body)
-        val contentMatch = """"content"\s*:\s*"([\s\S]*?)"\s*\}""".toRegex().find(body)
-
-        val filePath = pathMatch?.groupValues?.get(1)
-        val content = contentMatch?.groupValues?.get(1)
-            ?.replace("\\n", "\n")
-            ?.replace("\\r", "\r")
-            ?.replace("\\t", "\t")
-            ?.replace("\\\"", "\"")
-            ?.replace("\\\\", "\\")
-
-        if (filePath == null || content == null) {
+        // request.content().toString(...) (Netty internal API) 대신 플랫폼 RestService의
+        // JSON 리더를 사용해 요청 본문을 읽는다. {"path":"...","content":"..."}
+        var filePath: String? = null
+        var content: String? = null
+        try {
+            RestService.createJsonReader(request).use { reader ->
+                reader.beginObject()
+                while (reader.hasNext()) {
+                    when (reader.nextName()) {
+                        "path" -> filePath = reader.nextString()
+                        "content" -> content = reader.nextString()
+                        else -> reader.skipValue()
+                    }
+                }
+                reader.endObject()
+            }
+        } catch (e: Exception) {
+            LOG.warn("Failed to parse save request body", e)
             sendJsonResponse(request, context, HttpResponseStatus.BAD_REQUEST, """{"error":"Invalid request body"}""")
             return true
         }
 
-        val virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath)
+        val resolvedPath = filePath
+        val resolvedContent = content
+        if (resolvedPath == null || resolvedContent == null) {
+            sendJsonResponse(request, context, HttpResponseStatus.BAD_REQUEST, """{"error":"Invalid request body"}""")
+            return true
+        }
+
+        val virtualFile = LocalFileSystem.getInstance().findFileByPath(resolvedPath)
         if (virtualFile == null) {
             sendJsonResponse(request, context, HttpResponseStatus.NOT_FOUND, """{"error":"File not found"}""")
             return true
@@ -98,7 +108,7 @@ object MarkdownFileController {
         ApplicationManager.getApplication().invokeLater {
             WriteCommandAction.runWriteCommandAction(project) {
                 val document = FileDocumentManager.getInstance().getDocument(virtualFile)
-                document?.setText(content)
+                document?.setText(resolvedContent)
             }
         }
 

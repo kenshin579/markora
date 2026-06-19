@@ -29,6 +29,13 @@
 
     <depends>com.intellij.modules.platform</depends>
 
+    <!-- 2026.2(262)부터 JCEF가 별도 플러그인(com.intellij.modules.jcef)으로 분리되어,
+         의존을 선언하지 않으면 JBCefApp/JBCefBrowser 클래스가 플러그인 클래스로더에 없어
+         startup에서 NoClassDefFoundError가 발생한다.
+         optional로 선언해 JCEF가 코어에 있던 구버전(242~261)에서는 무해하게 skip되고,
+         분리된 262+에서는 클래스가 클래스로더에 올라오도록 한다. -->
+    <depends optional="true" config-file="markora-jcef.xml">com.intellij.modules.jcef</depends>
+
     <extensions defaultExtensionNs="com.intellij">
         <!-- Markora Editor -->
         <fileEditorProvider
