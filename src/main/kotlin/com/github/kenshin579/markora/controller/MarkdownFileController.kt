@@ -7,7 +7,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.LocalFileSystem
-import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.*
 import java.nio.charset.StandardCharsets
@@ -25,7 +24,7 @@ object MarkdownFileController {
 
         return when {
             path == "api/file/read" && request.method() == HttpMethod.GET -> {
-                handleRead(urlDecoder, context)
+                handleRead(urlDecoder, request, context)
             }
             path == "api/file/save" && request.method() == HttpMethod.POST -> {
                 handleSave(request, context)
@@ -34,16 +33,20 @@ object MarkdownFileController {
         }
     }
 
-    private fun handleRead(urlDecoder: QueryStringDecoder, context: ChannelHandlerContext): Boolean {
+    private fun handleRead(
+        urlDecoder: QueryStringDecoder,
+        request: FullHttpRequest,
+        context: ChannelHandlerContext
+    ): Boolean {
         val filePath = urlDecoder.parameters()["path"]?.firstOrNull()
         if (filePath == null) {
-            sendJsonResponse(context, HttpResponseStatus.BAD_REQUEST, """{"error":"Missing path parameter"}""")
+            sendJsonResponse(request, context, HttpResponseStatus.BAD_REQUEST, """{"error":"Missing path parameter"}""")
             return true
         }
 
         val virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath)
         if (virtualFile == null) {
-            sendJsonResponse(context, HttpResponseStatus.NOT_FOUND, """{"error":"File not found"}""")
+            sendJsonResponse(request, context, HttpResponseStatus.NOT_FOUND, """{"error":"File not found"}""")
             return true
         }
 
@@ -60,7 +63,7 @@ object MarkdownFileController {
             .replace("\r", "\\r")
             .replace("\t", "\\t")
 
-        sendJsonResponse(context, HttpResponseStatus.OK, """{"content":"$escapedContent"}""")
+        sendJsonResponse(request, context, HttpResponseStatus.OK, """{"content":"$escapedContent"}""")
         return true
     }
 
@@ -80,13 +83,13 @@ object MarkdownFileController {
             ?.replace("\\\\", "\\")
 
         if (filePath == null || content == null) {
-            sendJsonResponse(context, HttpResponseStatus.BAD_REQUEST, """{"error":"Invalid request body"}""")
+            sendJsonResponse(request, context, HttpResponseStatus.BAD_REQUEST, """{"error":"Invalid request body"}""")
             return true
         }
 
         val virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath)
         if (virtualFile == null) {
-            sendJsonResponse(context, HttpResponseStatus.NOT_FOUND, """{"error":"File not found"}""")
+            sendJsonResponse(request, context, HttpResponseStatus.NOT_FOUND, """{"error":"File not found"}""")
             return true
         }
 
@@ -99,24 +102,16 @@ object MarkdownFileController {
             }
         }
 
-        sendJsonResponse(context, HttpResponseStatus.OK, """{"success":true}""")
+        sendJsonResponse(request, context, HttpResponseStatus.OK, """{"success":true}""")
         return true
     }
 
     private fun sendJsonResponse(
+        request: FullHttpRequest,
         context: ChannelHandlerContext,
         status: HttpResponseStatus,
         json: String
     ) {
-        val bytes = json.toByteArray(StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(
-            HttpVersion.HTTP_1_1,
-            status,
-            Unpooled.wrappedBuffer(bytes)
-        )
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8")
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, bytes.size)
-        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        context.channel().writeAndFlush(response)
+        sendTextResponse(context.channel(), request, status, "application/json", json, cors = true)
     }
 }

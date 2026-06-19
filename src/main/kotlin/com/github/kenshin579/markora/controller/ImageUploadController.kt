@@ -1,7 +1,6 @@
 package com.github.kenshin579.markora.controller
 
 import com.intellij.openapi.diagnostic.logger
-import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.*
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory
@@ -9,7 +8,6 @@ import io.netty.handler.codec.http.multipart.FileUpload
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder
 import io.netty.handler.codec.http.multipart.InterfaceHttpData
 import java.io.File
-import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,7 +24,7 @@ object ImageUploadController {
 
         val filePath = urlDecoder.parameters()["filePath"]?.firstOrNull()
         if (filePath == null) {
-            sendJsonResponse(context, HttpResponseStatus.BAD_REQUEST, """{"msg":"Missing filePath parameter"}""")
+            sendJsonResponse(request, context, HttpResponseStatus.BAD_REQUEST, """{"msg":"Missing filePath parameter"}""")
             return true
         }
 
@@ -74,10 +72,10 @@ object ImageUploadController {
                 "\"${escapeJson(k)}\":\"${escapeJson(v)}\""
             }
             val responseJson = """{"msg":"","code":0,"data":{"succMap":{$succMapJson}}}"""
-            sendJsonResponse(context, HttpResponseStatus.OK, responseJson)
+            sendJsonResponse(request, context, HttpResponseStatus.OK, responseJson)
         } catch (e: Exception) {
             LOG.error("Image upload failed", e)
-            sendJsonResponse(context, HttpResponseStatus.INTERNAL_SERVER_ERROR, """{"msg":"Upload failed: ${escapeJson(e.message ?: "")}","code":1}""")
+            sendJsonResponse(request, context, HttpResponseStatus.INTERNAL_SERVER_ERROR, """{"msg":"Upload failed: ${escapeJson(e.message ?: "")}","code":1}""")
         }
         return true
     }
@@ -87,19 +85,11 @@ object ImageUploadController {
     }
 
     private fun sendJsonResponse(
+        request: FullHttpRequest,
         context: ChannelHandlerContext,
         status: HttpResponseStatus,
         json: String
     ) {
-        val bytes = json.toByteArray(StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(
-            HttpVersion.HTTP_1_1,
-            status,
-            Unpooled.wrappedBuffer(bytes)
-        )
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8")
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, bytes.size)
-        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        context.channel().writeAndFlush(response)
+        sendTextResponse(context.channel(), request, status, "application/json", json, cors = true)
     }
 }
