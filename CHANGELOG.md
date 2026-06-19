@@ -4,6 +4,14 @@ All notable changes to Markora are documented here. Format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-06-19
+
+### Fixed
+- Plugin failed to start on IntelliJ 2026.2 (262) with `NoClassDefFoundError: com.intellij.ui.jcef.JBCefApp`. JCEF was split out of the platform core into a separate plugin (`com.intellij.modules.jcef`) in 262; an optional dependency now makes the JCEF classes load on 262+ while older IDEs (242–261, where JCEF is in core) are unaffected (#42)
+
+### Changed
+- Removed the remaining direct uses of internal Netty buffer APIs flagged by the plugin verifier: `ResourcesController` now serves bundled resources via `HttpRequestHandler.sendData`, and `MarkdownFileController` reads request bodies via `RestService.createJsonReader` instead of `request.content().toString(...)` (#42)
+
 ## [0.2.14] - 2026-06-19
 
 ### Changed
