@@ -1,7 +1,6 @@
 package com.github.kenshin579.markora.controller
 
 import com.intellij.openapi.diagnostic.logger
-import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.http.*
 import java.io.File
@@ -20,14 +19,14 @@ object ExportController {
         val filePath = urlDecoder.parameters()["path"]?.firstOrNull()
 
         if (filePath == null) {
-            sendResponse(context, HttpResponseStatus.BAD_REQUEST, "application/json",
+            sendResponse(request, context, HttpResponseStatus.BAD_REQUEST, "application/json",
                 """{"error":"Missing path parameter"}""")
             return true
         }
 
         val mdFile = File(filePath)
         if (!mdFile.exists()) {
-            sendResponse(context, HttpResponseStatus.NOT_FOUND, "application/json",
+            sendResponse(request, context, HttpResponseStatus.NOT_FOUND, "application/json",
                 """{"error":"File not found"}""")
             return true
         }
@@ -41,17 +40,17 @@ object ExportController {
                     val outputFile = File(mdFile.parent, "${mdFile.nameWithoutExtension}.html")
                     outputFile.writeText(htmlContent, StandardCharsets.UTF_8)
 
-                    sendResponse(context, HttpResponseStatus.OK, "application/json",
+                    sendResponse(request, context, HttpResponseStatus.OK, "application/json",
                         """{"msg":"Exported to ${escapeJson(outputFile.name)}","path":"${escapeJson(outputFile.absolutePath)}"}""")
                 }
                 else -> {
-                    sendResponse(context, HttpResponseStatus.BAD_REQUEST, "application/json",
+                    sendResponse(request, context, HttpResponseStatus.BAD_REQUEST, "application/json",
                         """{"error":"Unsupported format: $format"}""")
                 }
             }
         } catch (e: Exception) {
             LOG.error("Export failed", e)
-            sendResponse(context, HttpResponseStatus.INTERNAL_SERVER_ERROR, "application/json",
+            sendResponse(request, context, HttpResponseStatus.INTERNAL_SERVER_ERROR, "application/json",
                 """{"error":"Export failed: ${escapeJson(e.message ?: "")}"}""")
         }
         return true
@@ -106,20 +105,12 @@ object ExportController {
     }
 
     private fun sendResponse(
+        request: FullHttpRequest,
         context: ChannelHandlerContext,
         status: HttpResponseStatus,
         contentType: String,
         body: String
     ) {
-        val bytes = body.toByteArray(StandardCharsets.UTF_8)
-        val response = DefaultFullHttpResponse(
-            HttpVersion.HTTP_1_1,
-            status,
-            Unpooled.wrappedBuffer(bytes)
-        )
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "$contentType; charset=UTF-8")
-        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, bytes.size)
-        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-        context.channel().writeAndFlush(response)
+        sendTextResponse(context.channel(), request, status, contentType, body, cors = true)
     }
 }
