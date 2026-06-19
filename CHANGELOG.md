@@ -4,6 +4,14 @@ All notable changes to Markora are documented here. Format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-06-19
+
+### Changed
+- HTTP controllers now use IntelliJ platform response helpers (`org.jetbrains.io.response`/`send`, `FileResponses.sendFile`) instead of internal Netty buffer APIs (`Unpooled`/`ByteBuf`), reducing plugin-verifier internal API usage warnings (#40)
+
+### Fixed
+- `MarkdownHtmlPanel` was leaked (not disposed) when closing an editor or shutting down the IDE; the panel is now registered under the editor in the Disposer tree so it is disposed correctly (#41)
+
 ## [0.2.0] - 2026-05-09
 
 ### Added
