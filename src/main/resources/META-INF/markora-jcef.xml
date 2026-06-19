@@ -1,0 +1,7 @@
+<idea-plugin>
+    <!--
+      com.intellij.modules.jcef(=JCEF 플러그인)가 존재할 때만 로드되는 optional 설정.
+      JCEF 분리(2026.2+) 환경에서 이 의존을 통해 JBCefApp/JBCefBrowser 클래스가
+      플러그인 클래스로더에 올라온다. 조건부로 등록할 확장점은 없으므로 본문은 비어 있다.
+    -->
+</idea-plugin>
