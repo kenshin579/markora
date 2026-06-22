@@ -4,6 +4,11 @@ All notable changes to Markora are documented here. Format follows [Keep a Chang
 
 ## [Unreleased]
 
+## [0.2.16] - 2026-06-22
+
+### Fixed
+- Single tildes in text (e.g. ranges like `0.4~1.0` or `30~300s`) were rendered as strikethrough because BlockNote's bundled `remark-gfm` enables `singleTilde`. The markdown pipeline now escapes lone single tildes before parsing and restores them after serialization (round-trips preserved, no `\~` leaks into saved files), so only `~~text~~` produces strikethrough. Fenced code blocks, inline code spans, and code fences inside blockquotes are left verbatim (#44)
+
 ## [0.2.15] - 2026-06-19
 
 ### Fixed
