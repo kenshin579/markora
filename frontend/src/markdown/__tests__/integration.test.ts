@@ -56,6 +56,11 @@ describe('단일 틸드 취소선 회귀', () => {
     expect(out).toContain('~~취소선~~');
   });
 
+  it('인라인 수식 안의 틸드는 수식 소스로 보존된다', async () => {
+    const out = await roundtrip('노름 $0.4~1.0$ 입니다');
+    expect(out).toContain('$0.4~1.0$');
+  });
+
   it('표 안의 여러 범위 표기 보존', async () => {
     const md = [
       '| 항목 | 범위 |',

@@ -120,13 +120,27 @@ export function joinInlineMath(nodes: InlineNode[]): InlineNode[] {
 // 범위 표기(0.4~1.0 등)가 취소선이 되지 않도록 파싱 직전 단일 틸드를 이스케이프하고,
 // 저장 시 되돌린다. 코드 펜스/인라인 코드 영역은 보호한다.
 
+// fn을 인라인 수식($...$) 바깥 텍스트에만 적용한다 (수식 내부의 틸드는 보호)
+function applyOutsideInlineMath(text: string, fn: (t: string) => string): string {
+  INLINE_MATH_RE.lastIndex = 0;
+  let out = '';
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = INLINE_MATH_RE.exec(text)) !== null) {
+    out += fn(text.slice(last, m.index)); // 수식 앞 일반 텍스트
+    out += m[0];                          // 수식은 그대로 보존
+    last = m.index + m[0].length;
+  }
+  out += fn(text.slice(last));
+  return out;
+}
+
 // 코드 펜스(``` 또는 ~~~) 바깥 라인의, 인라인 코드 스팬(`...`) 바깥 텍스트에만 fn을 적용한다.
 function transformOutsideCode(md: string, fn: (text: string) => string): string {
   const lines = md.split('\n');
   let fence: string | null = null; // 열린 펜스 마커 (예: '```' 또는 '~~~')
   const out: string[] = [];
   for (const line of lines) {
-    const m = line.match(/^(\s*)(`{3,}|~{3,})/); // 여는 펜스: info-string 허용
     if (fence) {
       // 닫는 펜스: info-string 없이 마커 + 선택적 후행 공백만 허용 (CommonMark 규칙)
       const mc = line.match(/^(\s*)(`{3,}|~{3,})\s*$/);
@@ -134,6 +148,7 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
       out.push(line); // 닫는 펜스 라인 포함, 내부는 변환 안 함
       continue;
     }
+    const m = line.match(/^(\s*)(`{3,}|~{3,})/); // 여는 펜스: info-string 허용
     if (m) {
       fence = m[2];
       out.push(line); // 여는 펜스 라인 변환 안 함 (~~~ 마커 보존)
@@ -142,7 +157,7 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
     // 인라인 코드 스팬 분리 — 홀수 인덱스가 코드 스팬
     // known limitation: `` `foo`bar `` 같이 내부 단일 백틱 포함 스팬은 완벽하게 토크나이즈되지 않음
     const parts = line.split(/(`+[^`\n]*`+)/);
-    out.push(parts.map((p, i) => (i % 2 === 1 ? p : fn(p))).join(''));
+    out.push(parts.map((p, i) => (i % 2 === 1 ? p : applyOutsideInlineMath(p, fn))).join(''));
   }
   return out.join('\n');
 }
@@ -154,6 +169,8 @@ export function escapeSingleTildes(md: string): string {
 }
 
 export function unescapeSingleTildes(md: string): string {
-  // \~ → ~ (단, \~~ 같은 경우는 건드리지 않음)
+  // \~ → ~ (단, \~~ 는 건드리지 않아 이중 틸드 취소선 보존)
+  // 동작 메모: 파일에 원래 있던 \~ 도 ~ 로 정규화된다. 렌더링 의미(리터럴 ~)는
+  // 로드 시 escapeSingleTildes 가 다시 보호하므로 동일하게 유지된다 (취소선 안 됨).
   return transformOutsideCode(md, (t) => t.replace(/\\~(?!~)/g, '~'));
 }

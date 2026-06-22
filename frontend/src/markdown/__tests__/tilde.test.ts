@@ -48,6 +48,26 @@ describe('escapeSingleTildes', () => {
   });
 });
 
+describe('인라인 수식 보호', () => {
+  it('$...$ 수식 내부의 틸드는 escape하지 않는다', () => {
+    expect(escapeSingleTildes('norm $0.4~1.0$ 끝')).toBe('norm $0.4~1.0$ 끝');
+  });
+
+  it('수식 바깥의 틸드는 여전히 escape된다', () => {
+    expect(escapeSingleTildes('a~b $c~d$ e~f')).toBe('a\\~b $c~d$ e\\~f');
+  });
+
+  it('통화 표현 $5는 수식이 아니므로 주변 틸드 escape에 영향 없음', () => {
+    expect(escapeSingleTildes('a~b $5')).toBe('a\\~b $5');
+  });
+});
+
+describe('선존 \\~ 동작 명시', () => {
+  it('파일 원본의 \\~ 는 unescape 후 ~ 로 정규화된다 (현재 동작 고정)', () => {
+    expect(unescapeSingleTildes('Cost is \\~100')).toBe('Cost is ~100');
+  });
+});
+
 describe('unescapeSingleTildes', () => {
   it('\\~ 를 ~ 로 되돌림', () => {
     expect(unescapeSingleTildes('0.4\\~1.0')).toBe('0.4~1.0');
