@@ -43,7 +43,11 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
   return md
     .split('\n')
     .map(line => {
-      if (FENCE_RE.test(line)) { inFence = !inFence; return line; }
+      // blockquote 마커(`>`)를 벗긴 뒤 펜스 여부를 판정한다.
+      // escapeSingleTildes 는 splitRuns/stripQuotePrefix 이전 전체 본문에 적용되므로,
+      // `> ``` 처럼 blockquote 안에 있는 코드펜스도 여기서 인식해야 내부 틸드를 보존한다.
+      const unquoted = line.replace(/^( {0,3}>)+ ?/, '');
+      if (FENCE_RE.test(unquoted)) { inFence = !inFence; return line; }
       if (inFence) return line;
       return applyOutsideInlineCode(line, fn);
     })

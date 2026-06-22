@@ -47,6 +47,15 @@ describe('escapeSingleTildes', () => {
     const expected = '범위 0\\~9\n\n```\na~b\n```';
     expect(escapeSingleTildes(input)).toBe(expected);
   });
+
+  it('blockquote 내부 코드펜스의 틸드는 변형하지 않음', () => {
+    const md = '> ```\n> let a~b = 1;\n> ```';
+    expect(escapeSingleTildes(md)).toBe(md);
+  });
+
+  it('blockquote 내부 일반 텍스트의 단일 틸드는 이스케이프', () => {
+    expect(escapeSingleTildes('> 범위 0~9')).toBe('> 범위 0\\~9');
+  });
 });
 
 describe('unescapeTildes', () => {
