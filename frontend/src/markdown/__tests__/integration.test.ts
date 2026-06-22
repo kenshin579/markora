@@ -80,5 +80,12 @@ describe('strikethrough: 단일 틸드 round-trip', () => {
     const out = await roundtripViaWrapper(md);
     expect(out).toContain('0.4~1.0');
     expect(out).not.toContain('\\~');
+    expect(out).not.toContain('~~');
+  });
+
+  it('blockquote 내부 단일 틸드도 리터럴 보존', async () => {
+    const out = await roundtripViaWrapper('> 범위(0.4~1.0) 참조\n');
+    expect(out).toContain('0.4~1.0');
+    expect(out).not.toContain('\\~');
   });
 });
