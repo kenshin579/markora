@@ -114,3 +114,38 @@ export function joinInlineMath(nodes: InlineNode[]): InlineNode[] {
   }
   return result;
 }
+
+// ── 단일 틸드 보호 ───────────────────────────────────────────────
+// BlockNote가 쓰는 remark-gfm은 단일 틸드(~...~)도 취소선으로 해석한다.
+// 범위 표기(0.4~1.0 등)가 취소선이 되지 않도록 파싱 직전 단일 틸드를 이스케이프하고,
+// 저장 시 되돌린다. 코드 펜스/인라인 코드 영역은 보호한다.
+
+// 코드 펜스(``` 또는 ~~~) 바깥 라인의, 인라인 코드 스팬(`...`) 바깥 텍스트에만 fn을 적용한다.
+function transformOutsideCode(md: string, fn: (text: string) => string): string {
+  const lines = md.split('\n');
+  let fence: string | null = null; // 열린 펜스 마커 (예: '```' 또는 '~~~')
+  const out: string[] = [];
+  for (const line of lines) {
+    const m = line.match(/^(\s*)(`{3,}|~{3,})/);
+    if (fence) {
+      // 펜스 내부: 같은 문자 + 여는 펜스 이상 길이면 닫힘
+      if (m && m[2][0] === fence[0] && m[2].length >= fence.length) fence = null;
+      out.push(line); // 닫는 펜스 라인 포함, 내부는 변환 안 함
+      continue;
+    }
+    if (m) {
+      fence = m[2];
+      out.push(line); // 여는 펜스 라인 변환 안 함 (~~~ 마커 보존)
+      continue;
+    }
+    // 인라인 코드 스팬 분리 — 홀수 인덱스가 코드 스팬
+    const parts = line.split(/(`+[^`\n]*`+)/);
+    out.push(parts.map((p, i) => (i % 2 === 1 ? p : fn(p))).join(''));
+  }
+  return out.join('\n');
+}
+
+export function escapeSingleTildes(md: string): string {
+  // (?<!\\): 이미 이스케이프된 \~ 제외, (?<!~)~(?!~): 단일 틸드만 (~~ 보존)
+  return transformOutsideCode(md, (t) => t.replace(/(?<!\\)(?<!~)~(?!~)/g, '\\~'));
+}
