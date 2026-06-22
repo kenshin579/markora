@@ -1,4 +1,5 @@
 import type { BlockNoteEditor } from '@blocknote/core';
+import { escapeSingleTildes, unescapeTildes } from './strikethrough';
 
 export type Run = { kind: 'quote' | 'plain'; text: string };
 
@@ -62,7 +63,8 @@ export async function parseMarkdownWithBlockquotes(
   const out: AnyBlock[] = [];
   // 에디터가 파일 원본 바이트를 그대로 넘기므로 CRLF/CR 줄바꿈을 LF 로 정규화한다.
   // (정규화하지 않으면 stripQuotePrefix 의 '.' 가 \r 을 못 먹어 '>' 가 남는다)
-  const normalized = body.replace(/\r\n?/g, '\n');
+  // CRLF/CR → LF 정규화 후, 단일 틸드를 이스케이프해 remark-gfm 의 singleTilde 오탐을 막는다.
+  const normalized = escapeSingleTildes(body.replace(/\r\n?/g, '\n'));
   for (const run of splitRuns(normalized)) {
     if (run.kind === 'plain') {
       if (run.text.trim() === '') continue; // 빈 분리 run은 빈 paragraph 주입을 피하려 건너뛴다
@@ -119,5 +121,5 @@ export async function serializeBlocksWithBlockquotes(
     }
   }
   await flush();
-  return parts.join('\n\n') + '\n';
+  return unescapeTildes(parts.join('\n\n') + '\n');
 }
