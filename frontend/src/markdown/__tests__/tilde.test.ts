@@ -34,4 +34,16 @@ describe('escapeSingleTildes', () => {
     expect(out).toContain('0.4\\~1.0');
     expect(out).toContain('30\\~300s');
   });
+
+  it('```python 펜스(info string) 내부는 변환하지 않음', () => {
+    const md = '```python\n0.4~1.0\n```';
+    expect(escapeSingleTildes(md)).toBe(md);
+  });
+
+  it('펜스 내부의 info-string 같은 줄은 펜스를 닫지 않는다', () => {
+    const md = '```\n```python 같은 줄\n0.4~1.0\n```';
+    // 첫 ``` 가 열고, 마지막 ``` 만 닫는다. 내부 0.4~1.0 는 보존되어야 한다
+    expect(escapeSingleTildes(md)).toContain('0.4~1.0');
+    expect(escapeSingleTildes(md)).not.toContain('0.4\\~1.0');
+  });
 });

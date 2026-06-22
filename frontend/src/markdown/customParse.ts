@@ -126,10 +126,11 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
   let fence: string | null = null; // 열린 펜스 마커 (예: '```' 또는 '~~~')
   const out: string[] = [];
   for (const line of lines) {
-    const m = line.match(/^(\s*)(`{3,}|~{3,})/);
+    const m = line.match(/^(\s*)(`{3,}|~{3,})/); // 여는 펜스: info-string 허용
     if (fence) {
-      // 펜스 내부: 같은 문자 + 여는 펜스 이상 길이면 닫힘
-      if (m && m[2][0] === fence[0] && m[2].length >= fence.length) fence = null;
+      // 닫는 펜스: info-string 없이 마커 + 선택적 후행 공백만 허용 (CommonMark 규칙)
+      const mc = line.match(/^(\s*)(`{3,}|~{3,})\s*$/);
+      if (mc && mc[2][0] === fence[0] && mc[2].length >= fence.length) fence = null;
       out.push(line); // 닫는 펜스 라인 포함, 내부는 변환 안 함
       continue;
     }
@@ -139,6 +140,7 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
       continue;
     }
     // 인라인 코드 스팬 분리 — 홀수 인덱스가 코드 스팬
+    // known limitation: `` `foo`bar `` 같이 내부 단일 백틱 포함 스팬은 완벽하게 토크나이즈되지 않음
     const parts = line.split(/(`+[^`\n]*`+)/);
     out.push(parts.map((p, i) => (i % 2 === 1 ? p : fn(p))).join(''));
   }
@@ -147,5 +149,6 @@ function transformOutsideCode(md: string, fn: (text: string) => string): string 
 
 export function escapeSingleTildes(md: string): string {
   // (?<!\\): 이미 이스케이프된 \~ 제외, (?<!~)~(?!~): 단일 틸드만 (~~ 보존)
+  // known limitation: \\~ (이스케이프 백슬래시 + 원시 틸드) 는 lookbehind 로 인해 이스케이프되지 않음
   return transformOutsideCode(md, (t) => t.replace(/(?<!\\)(?<!~)~(?!~)/g, '\\~'));
 }
