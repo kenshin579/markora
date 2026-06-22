@@ -152,3 +152,8 @@ export function escapeSingleTildes(md: string): string {
   // known limitation: \\~ (이스케이프 백슬래시 + 원시 틸드) 는 lookbehind 로 인해 이스케이프되지 않음
   return transformOutsideCode(md, (t) => t.replace(/(?<!\\)(?<!~)~(?!~)/g, '\\~'));
 }
+
+export function unescapeSingleTildes(md: string): string {
+  // \~ → ~ (단, \~~ 같은 경우는 건드리지 않음)
+  return transformOutsideCode(md, (t) => t.replace(/\\~(?!~)/g, '~'));
+}
