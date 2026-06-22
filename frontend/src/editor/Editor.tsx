@@ -4,7 +4,7 @@ import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuI
 import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
-import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
+import { postParse, preSerialize, splitInlineMath, escapeSingleTildes, unescapeSingleTildes } from '../markdown/customParse';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
 
 interface Props {
@@ -37,7 +37,7 @@ export function Editor({ bridge }: Props) {
       try {
         const md = await bridge.loadFile();
         if (cancelled) return;
-        const blocks = await editor.tryParseMarkdownToBlocks(md);
+        const blocks = await editor.tryParseMarkdownToBlocks(escapeSingleTildes(md));
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = md;
         isDirtyRef.current = false;
@@ -64,7 +64,9 @@ export function Editor({ bridge }: Props) {
       saveTimerRef.current = window.setTimeout(async () => {
         try {
           setStatus('Saving...');
-          const md = await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any);
+          const md = unescapeSingleTildes(
+            await editor.blocksToMarkdownLossy(preSerialize(editor.document as any) as any)
+          );
           await bridge.saveFile(md);
           lastKnownContentRef.current = md;
           isDirtyRef.current = false;
@@ -117,7 +119,7 @@ export function Editor({ bridge }: Props) {
       try {
         const md = await bridge.loadFile();
         if (md === lastKnownContentRef.current) return;
-        const blocks = await editor.tryParseMarkdownToBlocks(md);
+        const blocks = await editor.tryParseMarkdownToBlocks(escapeSingleTildes(md));
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = md;
       } catch { /* 무시 */ }
