@@ -67,6 +67,10 @@ describe('unescapeTildes', () => {
   it('인라인 코드스팬 내부의 \\~ 는 복원하지 않음', () => {
     expect(unescapeTildes('값 `\\~` 끝')).toBe('값 `\\~` 끝');
   });
+
+  it('사용자 작성 \\~ 도 ~ 로 정규화된다 (의도된 무손실 동작)', () => {
+    expect(unescapeTildes('a\\~b')).toBe('a~b');
+  });
 });
 
 describe('escape → unescape round-trip', () => {

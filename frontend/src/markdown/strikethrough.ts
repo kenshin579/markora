@@ -56,6 +56,8 @@ export function escapeSingleTildes(md: string): string {
 }
 
 // 직렬화 후: \~ 를 다시 리터럴 ~ 로 복원한다(파일에 \~ 오염 방지).
+// 주의: 사용자가 직접 쓴 \~ 도 ~ 로 정규화된다. 수정된 파이프라인에서는 ~ 와 \~ 가
+// 동일하게 리터럴 ~ 로 렌더링되므로 시맨틱상 무손실이다(잉여 이스케이프 제거).
 export function unescapeTildes(md: string): string {
   return transformOutsideCode(md, t => t.replace(/\\~/g, '~'));
 }
