@@ -87,23 +87,6 @@ cd markora
 
 **Prerequisites**: JDK 21
 
-## Release
-
-This project uses tag-triggered automated releases. The `gradle.properties` `pluginVersion` is the single source of truth for the plugin version.
-
-```bash
-# One-shot: bump version, push, tag, push tag, create GitHub release
-make release VERSION=0.2.0
-
-# Stepwise alternatives
-make bump-version VERSION=0.2.0   # edit gradle.properties + commit + push to main
-make tag VERSION=0.2.0            # bump-version + git tag v0.2.0 + push tag
-```
-
-The `release.yml` GitHub Actions workflow is triggered by the `v*` tag push, builds the plugin, and attaches the resulting `.zip` to the GitHub Release page.
-
-`make release` requires the [GitHub CLI (`gh`)](https://cli.github.com) to be installed and authenticated. Before running it: ensure `CHANGELOG.md` has the unreleased changes documented (the file is manually maintained; auto-generated GitHub Release notes are added separately).
-
 ## Tech Stack
 
 - **Kotlin** — Plugin source code
