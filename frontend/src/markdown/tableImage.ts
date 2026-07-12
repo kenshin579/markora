@@ -39,3 +39,51 @@ export function decodeToken(payload: string): TableImage {
   const o = JSON.parse(json);
   return { url: o.url ?? '', alt: o.alt ?? '', title: o.title ?? '' };
 }
+
+// blockquote.ts / strikethrough.ts 와 동일한 펜스 판정.
+const FENCE_RE = /^ {0,3}(```|~~~)/;
+// GFM 구분행: 셀마다 optional colon + 하이픈. 최소 한 개의 '-' 포함.
+const DELIM_ROW_RE = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+// 마크다운 이미지 ![alt](target "title"?). target 은 공백 없는 토큰.
+const IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g;
+
+function isTableRow(line: string): boolean {
+  return line.includes('|') && line.trim() !== '';
+}
+
+function maskImagesInLine(line: string): string {
+  return line.replace(IMAGE_RE, (_m, alt: string, url: string, title?: string) =>
+    encodeToken({ url, alt: alt ?? '', title: title ?? '' }));
+}
+
+// GFM 테이블 블록(헤더행 + 구분행 + 본문행)을 라인 스캔으로 식별하고, 그 안의
+// 마크다운 이미지만 토큰으로 치환한다. 코드펜스 내부는 제외.
+export function maskTableImages(md: string): string {
+  const lines = md.split('\n');
+  let inFence = false;
+  let inTable = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (FENCE_RE.test(line)) { inFence = !inFence; inTable = false; continue; }
+    if (inFence) continue;
+    if (!inTable) {
+      // 헤더행 조건: 현재 줄이 파이프 행이고 다음 줄이 구분행.
+      if (isTableRow(line) && i + 1 < lines.length && DELIM_ROW_RE.test(lines[i + 1])) {
+        inTable = true;
+      }
+    } else if (!isTableRow(line)) {
+      // 빈 줄/비-행에서 테이블 종료.
+      inTable = false;
+      continue;
+    }
+    if (inTable) lines[i] = maskImagesInLine(line);
+  }
+  return lines.join('\n');
+}
+
+export function unmaskTableImages(md: string): string {
+  return md.replace(TOKEN_RE, (_m, payload: string) => {
+    const { url, alt, title } = decodeToken(payload);
+    return title ? `![${alt}](${url} "${title}")` : `![${alt}](${url})`;
+  });
+}
