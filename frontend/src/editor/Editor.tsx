@@ -5,6 +5,7 @@ import '@blocknote/mantine/style.css';
 import type { MarkoraBridge, Theme } from '../types';
 import { schema } from './schema';
 import { postParse, preSerialize, splitInlineMath } from '../markdown/customParse';
+import { maskTableImages, unmaskTableImages } from '../markdown/tableImage';
 import { parseMarkdownWithBlockquotes, serializeBlocksWithBlockquotes } from '../markdown/blockquote';
 import { checkSaveSafety } from '../markdown/saveGuard';
 import { reinitOnThemeChange } from '../blocks/MermaidBlock';
@@ -61,7 +62,7 @@ export function Editor({ bridge }: Props) {
         if (cancelled) return;
         setFrontmatter(fm);
         frontmatterRef.current = fm;
-        const blocks = await parseMarkdownWithBlockquotes(editor, body);
+        const blocks = await parseMarkdownWithBlockquotes(editor, maskTableImages(body));
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = body;
         isDirtyRef.current = false;
@@ -90,7 +91,9 @@ export function Editor({ bridge }: Props) {
       saveTimerRef.current = null;
       try {
         setStatus('Saving...');
-        const body = await serializeBlocksWithBlockquotes(editor, preSerialize(editor.document as any) as any);
+        const body = unmaskTableImages(
+          await serializeBlocksWithBlockquotes(editor, preSerialize(editor.document as any) as any),
+        );
         // 저장 직전 디스크 현재 본문을 부작용 없이 읽어 외부 편집(터미널 등)을 확인한다.
         let disk: string | undefined;
         try { disk = await bridge.peekFile(); } catch { disk = undefined; }
@@ -174,7 +177,7 @@ export function Editor({ bridge }: Props) {
         // reload가 트리거하는 onChange를 user edit으로 오인해 되저장하지 않도록 억제.
         // (loadedRef와 동일한 패턴: replaceBlocks 동안 플래그 on, 다음 tick에 off)
         applyingRemoteRef.current = true;
-        const blocks = await parseMarkdownWithBlockquotes(editor, body);
+        const blocks = await parseMarkdownWithBlockquotes(editor, maskTableImages(body));
         editor.replaceBlocks(editor.document, postParse(blocks as any) as any);
         lastKnownContentRef.current = body;
         isDirtyRef.current = false;
