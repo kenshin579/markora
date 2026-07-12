@@ -1,5 +1,6 @@
 import { getLanguageId } from '@blocknote/core';
 import { codeBlockOptions } from '../editor/codeBlock';
+import { tokenTextToInline, inlineToTokenText } from './tableImage';
 
 type AnyBlock = {
   type: string;
@@ -31,8 +32,27 @@ const INLINE_MATH_BLOCK_TYPES = new Set([
   'paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'checkListItem', 'quote',
 ]);
 
+const isTableBlock = (b: AnyBlock): boolean => (b.content as any)?.type === 'tableContent';
+
+// 테이블 블록은 content 가 배열이 아니라 { type:'tableContent', rows:[{cells:[{type:'tableCell', content:[...]}]}] }
+// 객체라 기존 재귀가 도달하지 못한다. 각 셀의 인라인 배열에 fn 을 적용한 새 블록을 만든다.
+function mapTableCells(b: AnyBlock, fn: (nodes: InlineNode[]) => InlineNode[]): AnyBlock {
+  const content: any = b.content;
+  const rows = (content.rows ?? []).map((row: any) => ({
+    ...row,
+    cells: (row.cells ?? []).map((cell: any) =>
+      cell && typeof cell === 'object' && Array.isArray(cell.content)
+        ? { ...cell, content: fn(cell.content) }
+        : cell),
+  }));
+  return { ...b, content: { ...content, rows } };
+}
+
 export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
+    if (isTableBlock(b)) {
+      return mapTableCells(b, inlineToTokenText);
+    }
     if (b.type === 'katex')   return codeBlock('math',    b.props?.source ?? '');
     if (b.type === 'mermaid') return codeBlock('mermaid', b.props?.source ?? '');
     // Fix 4 + Fix 5: gate by block type; Fix 5: only add children key when present
@@ -48,6 +68,9 @@ export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
 
 export function postParse(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
+    if (isTableBlock(b)) {
+      return mapTableCells(b, tokenTextToInline);
+    }
     if (b.type === 'codeBlock' && b.props?.language === 'math') {
       return { type: 'katex', props: { source: codeContent(b) } };
     }

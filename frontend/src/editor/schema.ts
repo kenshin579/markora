@@ -7,6 +7,7 @@ import {
 import { KatexBlock } from '../blocks/KatexBlock';
 import { MermaidBlock } from '../blocks/MermaidBlock';
 import { KatexInline } from '../inline/KatexInline';
+import { InlineImage } from '../inline/InlineImage';
 import { codeBlockOptions } from './codeBlock';
 
 const { codeBlock: _ignoredDefaultCodeBlock, ...restDefaultBlockSpecs } = defaultBlockSpecs;
@@ -18,5 +19,5 @@ export const schema = BlockNoteSchema.create({
     katex: KatexBlock(),
     mermaid: MermaidBlock(),
   },
-  inlineContentSpecs: { ...defaultInlineContentSpecs, katexInline: KatexInline },
+  inlineContentSpecs: { ...defaultInlineContentSpecs, katexInline: KatexInline, inlineImage: InlineImage },
 });

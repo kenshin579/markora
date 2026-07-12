@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { preSerialize, postParse, splitInlineMath, joinInlineMath } from '../customParse';
+import { encodeToken } from '../tableImage';
 
 
 describe('preSerialize: custom block → standard codeBlock', () => {
@@ -212,6 +213,67 @@ describe('regressions: 다양한 언어 코드블록 보존', () => {
     }];
     expect(postParse(blocks as any)).toEqual(blocks);
     expect(preSerialize(blocks as any)).toEqual(blocks);
+  });
+});
+
+describe('postParse/preSerialize: 테이블 셀 이미지', () => {
+  const tableBlock = (cellContent: any[]) => ({
+    type: 'table',
+    content: {
+      type: 'tableContent',
+      columnWidths: [undefined],
+      rows: [{ cells: [{ type: 'tableCell', content: cellContent, props: {} }] }],
+    },
+  });
+
+  it('postParse 가 셀의 토큰 텍스트를 inlineImage 로 복원', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const input = [tableBlock([{ type: 'text', text: token, styles: {} }])];
+    const out: any = postParse(input as any)[0];
+    expect(out.content.rows[0].cells[0].content).toEqual([
+      { type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } },
+    ]);
+  });
+
+  it('preSerialize 가 셀의 inlineImage 를 토큰 텍스트로 되돌림', () => {
+    const input = [tableBlock([{ type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } }])];
+    const out: any = preSerialize(input as any)[0];
+    const cell = out.content.rows[0].cells[0].content;
+    expect(cell).toHaveLength(1);
+    expect(cell[0].type).toBe('text');
+    expect(cell[0].text).toBe(encodeToken({ url: 'u.png', alt: 'a', title: '' }));
+  });
+
+  it('문자열 셀(shorthand)은 그대로 통과', () => {
+    const input = [{ type: 'table', content: { type: 'tableContent', rows: [{ cells: ['plain'] }] } }];
+    expect(postParse(input as any)).toEqual(input);
+  });
+
+  it('postParse 가 텍스트+토큰 혼합 셀을 text|inlineImage|text 로 분리', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const input = [tableBlock([{ type: 'text', text: `x ${token} y`, styles: {} }])];
+    const out: any = postParse(input as any)[0];
+    expect(out.content.rows[0].cells[0].content).toEqual([
+      { type: 'text', text: 'x ', styles: {} },
+      { type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } },
+      { type: 'text', text: ' y', styles: {} },
+    ]);
+  });
+
+  it('postParse 는 입력 블록을 변형하지 않는다', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const input = [tableBlock([{ type: 'text', text: token, styles: {} }])];
+    // structuredClone: JSON round-trip 은 columnWidths 의 undefined 를 null 로 바꿔 fixture 자체가 달라지므로 부적합.
+    const snapshot = structuredClone(input);
+    postParse(input as any);
+    expect(input).toEqual(snapshot);
+  });
+
+  it('빈 rows 와 content 없는 셀을 안전하게 통과', () => {
+    const emptyRows = [{ type: 'table', content: { type: 'tableContent', rows: [] } }];
+    expect(postParse(emptyRows as any)).toEqual(emptyRows);
+    const noContentCell = [{ type: 'table', content: { type: 'tableContent', rows: [{ cells: [{ type: 'tableCell', props: {} }] }] } }];
+    expect(() => postParse(noContentCell as any)).not.toThrow();
   });
 });
 
