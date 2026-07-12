@@ -96,3 +96,31 @@ describe('tokenTextToInline / inlineToTokenText', () => {
     expect(back).toEqual(original);
   });
 });
+
+describe('마스킹/언마스킹 엣지', () => {
+  it('한 셀에 다중 이미지 → 토큰 2개, 왕복 복원', () => {
+    const md = '| A |\n| --- |\n| ![a](x.png) ![b](y.png) |';
+    const masked = maskTableImages(md);
+    expect(masked.match(/\.MKRAIMG\.[A-Za-z0-9_-]+\./g)).toHaveLength(2);
+    expect(unmaskTableImages(masked)).toBe(md);
+  });
+
+  it('title 포함 셀 이미지 전체 왕복', () => {
+    const md = '| A |\n| --- |\n| ![a](x.png "t") |';
+    expect(unmaskTableImages(maskTableImages(md))).toBe(md);
+  });
+
+  it('손상 토큰은 unmask 에서 throw 없이 원문 유지', () => {
+    const bad = '.MKRAIMG.AAAA.';
+    expect(() => unmaskTableImages(bad)).not.toThrow();
+    expect(unmaskTableImages(bad)).toBe(bad);
+  });
+
+  it('손상 토큰은 tokenTextToInline 에서 throw 없이 텍스트로 보존', () => {
+    const bad = '.MKRAIMG.AAAA.';
+    const nodes = [{ type: 'text', text: bad, styles: {} }];
+    let out: any;
+    expect(() => { out = tokenTextToInline(nodes as any); }).not.toThrow();
+    expect(out).toEqual(nodes);
+  });
+});

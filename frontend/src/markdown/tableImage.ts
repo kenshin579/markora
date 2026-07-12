@@ -81,10 +81,16 @@ export function maskTableImages(md: string): string {
   return lines.join('\n');
 }
 
+// alt/url/title 은 항상 IMAGE_RE(maskTableImages) 유래라 title 에 " 가 없고 url 에 공백/`)`이
+// 없다. 그래서 이스케이프 없이 보간해도 유효한 마크다운 이미지가 나온다.
 export function unmaskTableImages(md: string): string {
-  return md.replace(TOKEN_RE, (_m, payload: string) => {
-    const { url, alt, title } = decodeToken(payload);
-    return title ? `![${alt}](${url} "${title}")` : `![${alt}](${url})`;
+  return md.replace(TOKEN_RE, (m, payload: string) => {
+    try {
+      const { url, alt, title } = decodeToken(payload);
+      return title ? `![${alt}](${url} "${title}")` : `![${alt}](${url})`;
+    } catch {
+      return m; // 우리 토큰이 아니거나 손상됨 — 원문 그대로 둔다
+    }
   });
 }
 
@@ -94,6 +100,8 @@ type InlineNode =
   | { type: string; [k: string]: any };
 
 // splitInlineMath 대칭: 텍스트 노드의 토큰을 text | inlineImage | text 로 분리.
+// 한계: inlineImage 는 스타일을 보유하지 않으므로, 스타일된 셀 텍스트 안 이미지의
+// 스타일 라운드트립은 지원 범위 밖(표시 전용).
 export function tokenTextToInline(nodes: InlineNode[]): InlineNode[] {
   const out: InlineNode[] = [];
   for (const n of nodes) {
@@ -107,8 +115,12 @@ export function tokenTextToInline(nodes: InlineNode[]): InlineNode[] {
     let m: RegExpExecArray | null;
     while ((m = TOKEN_RE.exec(text)) !== null) {
       if (m.index > last) out.push({ type: 'text', text: text.slice(last, m.index), styles });
-      const { url, alt, title } = decodeToken(m[1]);
-      out.push({ type: 'inlineImage', props: { url, alt, title } });
+      try {
+        const { url, alt, title } = decodeToken(m[1]);
+        out.push({ type: 'inlineImage', props: { url, alt, title } });
+      } catch {
+        out.push({ type: 'text', text: m[0], styles }); // 손상 토큰은 리터럴 텍스트로 보존
+      }
       last = m.index + m[0].length;
     }
     if (last < text.length) out.push({ type: 'text', text: text.slice(last), styles });
