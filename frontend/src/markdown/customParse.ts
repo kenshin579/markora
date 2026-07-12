@@ -32,9 +32,11 @@ const INLINE_MATH_BLOCK_TYPES = new Set([
   'paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'checkListItem', 'quote',
 ]);
 
+const isTableBlock = (b: AnyBlock): boolean => (b.content as any)?.type === 'tableContent';
+
 // 테이블 블록은 content 가 배열이 아니라 { type:'tableContent', rows:[{cells:[{type:'tableCell', content:[...]}]}] }
 // 객체라 기존 재귀가 도달하지 못한다. 각 셀의 인라인 배열에 fn 을 적용한 새 블록을 만든다.
-function mapTableCells(b: AnyBlock, fn: (nodes: any[]) => any[]): AnyBlock {
+function mapTableCells(b: AnyBlock, fn: (nodes: InlineNode[]) => InlineNode[]): AnyBlock {
   const content: any = b.content;
   const rows = (content.rows ?? []).map((row: any) => ({
     ...row,
@@ -48,7 +50,7 @@ function mapTableCells(b: AnyBlock, fn: (nodes: any[]) => any[]): AnyBlock {
 
 export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
-    if ((b.content as any)?.type === 'tableContent') {
+    if (isTableBlock(b)) {
       return mapTableCells(b, inlineToTokenText);
     }
     if (b.type === 'katex')   return codeBlock('math',    b.props?.source ?? '');
@@ -66,7 +68,7 @@ export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
 
 export function postParse(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
-    if ((b.content as any)?.type === 'tableContent') {
+    if (isTableBlock(b)) {
       return mapTableCells(b, tokenTextToInline);
     }
     if (b.type === 'codeBlock' && b.props?.language === 'math') {

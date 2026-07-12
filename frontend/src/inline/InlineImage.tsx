@@ -15,7 +15,7 @@ export const InlineImage = createReactInlineContentSpec(
   },
   {
     render: ({ inlineContent }) => {
-      const { url, alt, title } = inlineContent.props as { url: string; alt: string; title: string };
+      const { url, alt, title } = inlineContent.props;
       return (
         <img
           src={url}
