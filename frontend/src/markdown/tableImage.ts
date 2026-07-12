@@ -87,3 +87,56 @@ export function unmaskTableImages(md: string): string {
     return title ? `![${alt}](${url} "${title}")` : `![${alt}](${url})`;
   });
 }
+
+type InlineNode =
+  | { type: 'text'; text: string; styles: Record<string, any> }
+  | { type: 'inlineImage'; props: { url: string; alt: string; title: string } }
+  | { type: string; [k: string]: any };
+
+// splitInlineMath 대칭: 텍스트 노드의 토큰을 text | inlineImage | text 로 분리.
+export function tokenTextToInline(nodes: InlineNode[]): InlineNode[] {
+  const out: InlineNode[] = [];
+  for (const n of nodes) {
+    if ((n as any).type !== 'text' || typeof (n as any).text !== 'string') { out.push(n); continue; }
+    const text = (n as any).text as string;
+    const styles = (n as any).styles;
+    TOKEN_RE.lastIndex = 0;
+    if (!TOKEN_RE.test(text)) { out.push(n); continue; }
+    TOKEN_RE.lastIndex = 0;
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = TOKEN_RE.exec(text)) !== null) {
+      if (m.index > last) out.push({ type: 'text', text: text.slice(last, m.index), styles });
+      const { url, alt, title } = decodeToken(m[1]);
+      out.push({ type: 'inlineImage', props: { url, alt, title } });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) out.push({ type: 'text', text: text.slice(last), styles });
+  }
+  return out;
+}
+
+// joinInlineMath 대칭: inlineImage 를 토큰 텍스트로 직렬화하고 인접 텍스트와 병합.
+export function inlineToTokenText(nodes: InlineNode[]): InlineNode[] {
+  const out: InlineNode[] = [];
+  for (const n of nodes) {
+    let serialized: InlineNode;
+    if ((n as any).type === 'inlineImage') {
+      const p = (n as any).props ?? {};
+      serialized = { type: 'text', text: encodeToken({ url: p.url ?? '', alt: p.alt ?? '', title: p.title ?? '' }), styles: {} };
+    } else if ((n as any).type === 'text') {
+      serialized = { type: 'text', text: (n as any).text, styles: (n as any).styles };
+    } else {
+      out.push(n);
+      continue;
+    }
+    const prev = out[out.length - 1] as any;
+    if (prev && prev.type === 'text' && (serialized as any).type === 'text' &&
+        JSON.stringify(prev.styles) === JSON.stringify((serialized as any).styles)) {
+      out[out.length - 1] = { type: 'text', text: prev.text + (serialized as any).text, styles: prev.styles };
+    } else {
+      out.push(serialized);
+    }
+  }
+  return out;
+}

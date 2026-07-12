@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeToken, decodeToken, maskTableImages, unmaskTableImages } from '../tableImage';
+import { encodeToken, decodeToken, maskTableImages, unmaskTableImages, tokenTextToInline, inlineToTokenText } from '../tableImage';
 
 describe('토큰 코덱', () => {
   it('encode → decode 라운드트립(한글 alt/title 포함)', () => {
@@ -57,5 +57,42 @@ describe('unmaskTableImages', () => {
   it('mask → unmask 왕복이 테이블 이미지 원문을 복원', () => {
     const md = '| A |\n| --- |\n| ![alt](img.png) |';
     expect(unmaskTableImages(maskTableImages(md))).toBe(md);
+  });
+});
+
+describe('tokenTextToInline / inlineToTokenText', () => {
+  it('셀 텍스트의 토큰을 inlineImage 로 분리', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const nodes = [{ type: 'text', text: `before ${token} after`, styles: {} }];
+    const out = tokenTextToInline(nodes as any);
+    expect(out).toEqual([
+      { type: 'text', text: 'before ', styles: {} },
+      { type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } },
+      { type: 'text', text: ' after', styles: {} },
+    ]);
+  });
+
+  it('토큰 없는 노드는 그대로 통과', () => {
+    const nodes = [{ type: 'text', text: '평범한 셀', styles: {} }];
+    expect(tokenTextToInline(nodes as any)).toEqual(nodes);
+  });
+
+  it('inlineImage 를 토큰 텍스트로 되돌리고 인접 텍스트와 병합', () => {
+    const nodes = [
+      { type: 'text', text: 'before ', styles: {} },
+      { type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } },
+      { type: 'text', text: ' after', styles: {} },
+    ];
+    const out = inlineToTokenText(nodes as any);
+    expect(out).toHaveLength(1);
+    expect(out[0].type).toBe('text');
+    expect(unmaskTableImages(out[0].text)).toBe('before ![a](u.png) after');
+  });
+
+  it('split → join 대칭(왕복)', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const original = [{ type: 'text', text: `x ${token} y`, styles: {} }];
+    const back = inlineToTokenText(tokenTextToInline(original as any));
+    expect(back).toEqual(original);
   });
 });
