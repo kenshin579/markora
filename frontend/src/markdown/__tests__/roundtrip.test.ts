@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { preSerialize, postParse, splitInlineMath, joinInlineMath } from '../customParse';
+import { encodeToken } from '../tableImage';
 
 
 describe('preSerialize: custom block → standard codeBlock', () => {
@@ -212,6 +213,40 @@ describe('regressions: 다양한 언어 코드블록 보존', () => {
     }];
     expect(postParse(blocks as any)).toEqual(blocks);
     expect(preSerialize(blocks as any)).toEqual(blocks);
+  });
+});
+
+describe('postParse/preSerialize: 테이블 셀 이미지', () => {
+  const tableBlock = (cellContent: any[]) => ({
+    type: 'table',
+    content: {
+      type: 'tableContent',
+      columnWidths: [undefined],
+      rows: [{ cells: [{ type: 'tableCell', content: cellContent, props: {} }] }],
+    },
+  });
+
+  it('postParse 가 셀의 토큰 텍스트를 inlineImage 로 복원', () => {
+    const token = encodeToken({ url: 'u.png', alt: 'a', title: '' });
+    const input = [tableBlock([{ type: 'text', text: token, styles: {} }])];
+    const out: any = postParse(input as any)[0];
+    expect(out.content.rows[0].cells[0].content).toEqual([
+      { type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } },
+    ]);
+  });
+
+  it('preSerialize 가 셀의 inlineImage 를 토큰 텍스트로 되돌림', () => {
+    const input = [tableBlock([{ type: 'inlineImage', props: { url: 'u.png', alt: 'a', title: '' } }])];
+    const out: any = preSerialize(input as any)[0];
+    const cell = out.content.rows[0].cells[0].content;
+    expect(cell).toHaveLength(1);
+    expect(cell[0].type).toBe('text');
+    expect(cell[0].text).toBe(encodeToken({ url: 'u.png', alt: 'a', title: '' }));
+  });
+
+  it('문자열 셀(shorthand)은 그대로 통과', () => {
+    const input = [{ type: 'table', content: { type: 'tableContent', rows: [{ cells: ['plain'] }] } }];
+    expect(postParse(input as any)).toEqual(input);
   });
 });
 
