@@ -54,4 +54,15 @@ describe('테이블 셀 이미지 전체 라운드트립', () => {
     // 반면 테이블 셀 이미지는 토큰 라운드트립으로 상대 경로 그대로 복원된다.
     expect(out).toContain('![cell](docs/d.png)');
   });
+
+  it('CRLF 테이블의 셀 이미지도 유실 없이 라운드트립된다', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const md = '| H |\r\n| --- |\r\n| ![a](docs/z.png) |';
+    const blocks: any = await load(editor, md);
+    editor.replaceBlocks(editor.document, blocks);
+    expect(JSON.stringify(editor.document)).toContain('inlineImage');
+    const out = await save(editor);
+    expect(out).toContain('![a](docs/z.png)');
+    expect(out).not.toContain('MKRAIMG');
+  });
 });

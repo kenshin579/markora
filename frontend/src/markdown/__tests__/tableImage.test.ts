@@ -124,3 +124,12 @@ describe('마스킹/언마스킹 엣지', () => {
     expect(out).toEqual(nodes);
   });
 });
+
+describe('maskTableImages CRLF', () => {
+  it('CRLF 구분행 테이블도 감지하여 셀 이미지를 마스킹한다', () => {
+    const md = '| H |\r\n| --- |\r\n| ![a](x.png) |';
+    const masked = maskTableImages(md);
+    expect(masked).toMatch(/\.MKRAIMG\.[A-Za-z0-9_-]+\./);
+    expect(masked).not.toContain('![a](x.png)');
+  });
+});

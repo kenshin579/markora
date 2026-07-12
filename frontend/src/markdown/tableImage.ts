@@ -59,7 +59,13 @@ function maskImagesInLine(line: string): string {
 // GFM 테이블 블록(헤더행 + 구분행 + 본문행)을 라인 스캔으로 식별하고, 그 안의
 // 마크다운 이미지만 토큰으로 치환한다. 코드펜스 내부는 제외.
 export function maskTableImages(md: string): string {
-  const lines = md.split('\n');
+  // CRLF/CR → LF 정규화 후 스캔한다. maskTableImages 는 RAW 본문에 먼저 돌고 CRLF 정규화는
+  // 하위 파이프라인(parseMarkdownWithBlockquotes)에서야 일어나므로, 여기서 정규화하지 않으면
+  // DELIM_ROW_RE 의 `$`(m 플래그 없음)가 trailing `\r` 앞에서 매칭에 실패해 CRLF 테이블을
+  // 놓치고 셀 이미지를 유실한다. 하위 파이프라인이 어차피 동일하게 정규화하므로 LF 입력은 무변화.
+  // 한계: blockquote 안에 중첩된 테이블(`> | --- |`)은 구분행이 매칭되지 않아 감지하지 않는다
+  // (기능 도입 전과 동일 동작 — 범위 밖).
+  const lines = md.replace(/\r\n?/g, '\n').split('\n');
   let inFence = false;
   let inTable = false;
   for (let i = 0; i < lines.length; i++) {
