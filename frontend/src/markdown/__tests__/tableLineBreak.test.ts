@@ -30,13 +30,23 @@ describe('maskTableBreaks', () => {
 
 describe('unmaskBreakTokens', () => {
   it('토큰을 <br> 로 복원', () => {
-    expect(unmaskBreakTokens('l1.MKRABR.l2')).toBe('l1<br>l2');
+    const md = ['| H |', '| --- |', '| l1.MKRABR.l2 |'].join('\n');
+    expect(unmaskBreakTokens(md)).toContain('l1<br>l2');
   });
   it('연속 토큰도 각각 복원', () => {
-    expect(unmaskBreakTokens('a.MKRABR..MKRABR.b')).toBe('a<br><br>b');
+    const md = ['| H |', '| --- |', '| a.MKRABR..MKRABR.b |'].join('\n');
+    expect(unmaskBreakTokens(md)).toContain('a<br><br>b');
   });
   it('토큰이 없으면 원문 그대로', () => {
     expect(unmaskBreakTokens('plain text')).toBe('plain text');
+  });
+  it('테이블 밖 리터럴 토큰은 건드리지 않는다 (스코프)', () => {
+    const md = ['para .MKRABR. text', '', '| H |', '| --- |', '| a.MKRABR.b |'].join('\n');
+    const out = unmaskBreakTokens(md);
+    // 테이블 밖 문단의 리터럴 토큰은 보존
+    expect(out).toContain('para .MKRABR. text');
+    // 테이블 셀 안의 토큰만 <br> 로 복원
+    expect(out).toContain('| a<br>b |');
   });
 });
 

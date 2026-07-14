@@ -62,4 +62,16 @@ describe('테이블 셀 개행 전체 라운드트립', () => {
     expect(out).toContain('x<br>y');
     expect(out).toContain('일반 문단');
   });
+
+  it('연속/경계 <br> 와 CRLF 를 보존한다', async () => {
+    const editor = BlockNoteEditor.create({ schema });
+    const md = ['| H |', '| --- |', '| a<br><br>b |', '| <br>lead |', '| trail<br> |'].join('\r\n');
+    const blocks: any = await load(editor, md);
+    editor.replaceBlocks(editor.document, blocks);
+    const out = await save(editor);
+    expect(out).toContain('a<br><br>b');
+    expect(out).toContain('<br>lead');
+    expect(out).toContain('trail<br>');
+    expect(out).not.toContain('MKRABR');
+  });
 });

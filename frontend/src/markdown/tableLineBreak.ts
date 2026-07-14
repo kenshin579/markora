@@ -20,7 +20,7 @@ export function maskTableBreaks(md: string): string {
 }
 
 export function unmaskBreakTokens(md: string): string {
-  return md.replace(BREAK_TOKEN_RE, '<br>');
+  return mapTableLines(md, (line) => line.replace(BREAK_TOKEN_RE, '<br>'));
 }
 
 type InlineNode =
