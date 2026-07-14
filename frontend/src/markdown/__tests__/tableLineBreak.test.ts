@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { maskTableBreaks, unmaskBreakTokens } from '../tableLineBreak';
+import { breakTokensToNewlines, newlinesToBreakTokens } from '../tableLineBreak';
 
 describe('maskTableBreaks', () => {
   it('셀 안 <br> 변형(<br>, <br/>, <br />, <BR>)을 토큰으로 치환', () => {
@@ -36,5 +37,38 @@ describe('unmaskBreakTokens', () => {
   });
   it('토큰이 없으면 원문 그대로', () => {
     expect(unmaskBreakTokens('plain text')).toBe('plain text');
+  });
+});
+
+describe('breakTokensToNewlines', () => {
+  it('텍스트 노드의 토큰을 개행으로 (스타일 보존)', () => {
+    const nodes = [{ type: 'text', text: 'l1.MKRABR.l2', styles: { bold: true } }];
+    expect(breakTokensToNewlines(nodes as any)).toEqual([
+      { type: 'text', text: 'l1\nl2', styles: { bold: true } },
+    ]);
+  });
+  it('연속 토큰 → 연속 개행', () => {
+    const nodes = [{ type: 'text', text: 'a.MKRABR..MKRABR.b', styles: {} }];
+    expect(breakTokensToNewlines(nodes as any)).toEqual([
+      { type: 'text', text: 'a\n\nb', styles: {} },
+    ]);
+  });
+  it('비-텍스트 노드(inlineImage)는 그대로 통과', () => {
+    const nodes = [{ type: 'inlineImage', props: { url: 'x', alt: '', title: '' } }];
+    expect(breakTokensToNewlines(nodes as any)).toEqual(nodes);
+  });
+});
+
+describe('newlinesToBreakTokens', () => {
+  it('개행을 토큰으로', () => {
+    const nodes = [{ type: 'text', text: 'l1\nl2', styles: {} }];
+    expect(newlinesToBreakTokens(nodes as any)).toEqual([
+      { type: 'text', text: 'l1.MKRABR.l2', styles: {} },
+    ]);
+  });
+  it('대칭성: break→newline→break 왕복 동일', () => {
+    const start = [{ type: 'text', text: 'a.MKRABR.b.MKRABR.c', styles: {} }];
+    const round = newlinesToBreakTokens(breakTokensToNewlines(start as any));
+    expect(round).toEqual(start);
   });
 });

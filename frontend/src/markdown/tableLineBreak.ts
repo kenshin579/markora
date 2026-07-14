@@ -22,3 +22,27 @@ export function maskTableBreaks(md: string): string {
 export function unmaskBreakTokens(md: string): string {
   return md.replace(BREAK_TOKEN_RE, '<br>');
 }
+
+type InlineNode =
+  | { type: 'text'; text: string; styles: Record<string, any> }
+  | { type: string; [k: string]: any };
+
+// 셀 인라인 배열의 텍스트 노드에서 토큰을 \n 으로 치환. 비-텍스트 노드는 통과.
+export function breakTokensToNewlines(nodes: InlineNode[]): InlineNode[] {
+  return nodes.map((n) => {
+    if ((n as any).type === 'text' && typeof (n as any).text === 'string') {
+      return { ...(n as any), text: ((n as any).text as string).split(BREAK_TOKEN).join('\n') };
+    }
+    return n;
+  });
+}
+
+// 역방향: 텍스트 노드의 \n 을 토큰으로 치환.
+export function newlinesToBreakTokens(nodes: InlineNode[]): InlineNode[] {
+  return nodes.map((n) => {
+    if ((n as any).type === 'text' && typeof (n as any).text === 'string') {
+      return { ...(n as any), text: ((n as any).text as string).split('\n').join(BREAK_TOKEN) };
+    }
+    return n;
+  });
+}
