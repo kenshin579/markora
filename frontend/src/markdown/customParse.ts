@@ -1,6 +1,7 @@
 import { getLanguageId } from '@blocknote/core';
 import { codeBlockOptions } from '../editor/codeBlock';
 import { tokenTextToInline, inlineToTokenText } from './tableImage';
+import { breakTokensToNewlines, newlinesToBreakTokens } from './tableLineBreak';
 
 type AnyBlock = {
   type: string;
@@ -51,7 +52,7 @@ function mapTableCells(b: AnyBlock, fn: (nodes: InlineNode[]) => InlineNode[]): 
 export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
     if (isTableBlock(b)) {
-      return mapTableCells(b, inlineToTokenText);
+      return mapTableCells(b, (nodes) => newlinesToBreakTokens(inlineToTokenText(nodes)));
     }
     if (b.type === 'katex')   return codeBlock('math',    b.props?.source ?? '');
     if (b.type === 'mermaid') return codeBlock('mermaid', b.props?.source ?? '');
@@ -69,7 +70,7 @@ export function preSerialize(blocks: AnyBlock[]): AnyBlock[] {
 export function postParse(blocks: AnyBlock[]): AnyBlock[] {
   return blocks.map(b => {
     if (isTableBlock(b)) {
-      return mapTableCells(b, tokenTextToInline);
+      return mapTableCells(b, (nodes) => tokenTextToInline(breakTokensToNewlines(nodes)));
     }
     if (b.type === 'codeBlock' && b.props?.language === 'math') {
       return { type: 'katex', props: { source: codeContent(b) } };
