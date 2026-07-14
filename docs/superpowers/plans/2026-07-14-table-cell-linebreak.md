@@ -591,10 +591,14 @@ import { maskTableBreaks, unmaskBreakTokens } from '../markdown/tableLineBreak';
         ));
 ```
 
-- [ ] **Step 4: 타입 체크 + 전체 테스트**
+- [ ] **Step 4: 빌드 + 전체 테스트**
 
-Run: `cd frontend && npx tsc --noEmit && npx vitest run`
-Expected: 타입 에러 없음, 전체 테스트 PASS.
+> **주의:** 이 프로젝트의 빌드 게이트는 `vite build`이며 `tsc --noEmit`은 게이트가 **아니다**. base 커밋에 이미 tsc 에러 13개가 존재한다(기존 셀 이미지 기능의 3중 `InlineNode` 로컬 타입 불일치 — `customParse.ts:54,72`의 "Two different types with this name" 등). 이 개행 기능은 새 tsc 에러를 **0개** 추가한다(경험적으로 검증됨: 람다 합성 후에도 에러 수 13개 유지, 위치만 54/72→55/73으로 이동). 따라서 tsc 클린을 게이트로 삼지 말 것.
+
+Run: `cd frontend && npx vitest run && npm run build`
+Expected: 전체 vitest PASS, `vite build` 성공(exit 0).
+
+선택적 회귀 확인(새 tsc 에러 없음): `cd frontend && npx tsc --noEmit 2>&1 | grep -c "error TS"` → **13** (baseline 유지, 증가 시 원인 조사).
 
 - [ ] **Step 5: 커밋**
 
